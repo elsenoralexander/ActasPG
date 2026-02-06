@@ -35,10 +35,11 @@ def on_model_change():
     model = st.session_state.get("model")
     if model and model in memory.get("defaults", {}).get("models", {}):
         m_data = memory["defaults"]["models"][model]
-        st.session_state["description"] = m_data.get("description", "")
-        st.session_state["brand"] = m_data.get("brand", "")
-        st.session_state["provider"] = m_data.get("provider", "")
-        st.session_state["contact"] = m_data.get("contact", "")
+        # Auto-fill all known fields for this model
+        if m_data.get("description"): st.session_state["description"] = m_data["description"]
+        if m_data.get("brand"): st.session_state["brand"] = m_data["brand"]
+        if m_data.get("provider"): st.session_state["provider"] = m_data["provider"]
+        if m_data.get("contact"): st.session_state["contact"] = m_data["contact"]
 
 def on_reception_change():
     # Sync Acceptance date with Reception date
@@ -293,6 +294,8 @@ def main():
                 "center_name": st.session_state["center_name"],
                 "center_code": st.session_state["center_code"]
             }
+            # Optional: Also link model to service for even deeper memory?
+            # memory["defaults"]["services"][service]["last_model"] = model
             
         if model:
             if "models" not in memory["defaults"]:
@@ -319,7 +322,7 @@ def main():
             if c_mod and c_mod not in memory["defaults"]["models"]:
                  memory["defaults"]["models"][c_mod] = {
                      "brand": comp.get("brand", ""),
-                     "description": comp.get("name", ""),
+                     "description": comp.get("name", ""), # Component Name -> Description
                      "provider": "",
                      "contact": ""
                  }
