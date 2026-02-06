@@ -64,7 +64,7 @@ def main():
     defaults = {
         "center_name": "POLICLINICA GIPUZKOA",
         "center_code": "001",
-        "description": "Monitor",
+        "description": "",
         "main_inventory_number": "INV-"
     }
     
