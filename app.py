@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 import fill_acta  # Our local script
+import pandas as pd
 
 # --- CONFIG ---
 st.set_page_config(page_title="Agente de Actas", layout="wide")
@@ -165,7 +166,6 @@ def main():
     
     st.subheader("🔧 Componentes del Equipo")
     # Using data_editor for easy components management
-    import pandas as pd
     df_components = pd.DataFrame(st.session_state["components"])
     if df_components.empty:
         df_components = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
@@ -174,6 +174,7 @@ def main():
         df_components,
         num_rows="dynamic",
         use_container_width=True,
+        key="components_editor", # Fixed key to prevent state loss
         column_config={
             "name": "Nombre Componente",
             "inventory": "Nº Inventario",
@@ -182,7 +183,9 @@ def main():
             "serial": "Nº Serie"
         }
     )
-    st.session_state["components"] = edited_df.to_dict("records")
+    # Update master state only if edited_df is available
+    if edited_df is not None:
+        st.session_state["components"] = edited_df.to_dict("records")
 
     st.markdown("---")
     
