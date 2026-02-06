@@ -61,6 +61,32 @@ def calculate_warranty_end():
     else:
         st.session_state["warranty_end_val"] = None
 
+def on_components_change():
+    # Sync edits from data_editor widget state to session_state["components_df"]
+    state = st.session_state.get("components_editor_final")
+    if state:
+        df = st.session_state["components_df"]
+        
+        # Handle edits
+        for row_idx, changes in state.get("edited_rows", {}).items():
+            for col, val in changes.items():
+                df.iloc[int(row_idx)][col] = val
+        
+        # Handle additions
+        added = state.get("added_rows", [])
+        if added:
+            new_rows = pd.DataFrame(added)
+            # Ensure columns match
+            for col in df.columns:
+                if col not in new_rows.columns:
+                    new_rows[col] = ""
+            st.session_state["components_df"] = pd.concat([df, new_rows], ignore_index=True)
+            
+        # Handle deletions
+        deleted = state.get("deleted_rows", [])
+        if deleted:
+            st.session_state["components_df"] = df.drop(deleted).reset_index(drop=True)
+
 # --- VIEWS ---
 
 def show_database(memory):
@@ -275,12 +301,13 @@ def show_form(memory):
             st.session_state["components_df"] = pd.concat([st.session_state["components_df"], new_row], ignore_index=True)
             st.rerun()
 
-    # Editor sin restricciones (Texto libre)
-    edited_df = st.data_editor(
+    # Editor sin restricciones (Texto libre) con CALLBACK para máxima estabilidad
+    st.data_editor(
         st.session_state["components_df"],
         num_rows="dynamic",
         use_container_width=True,
-        key="components_editor_fixed",
+        key="components_editor_final",
+        on_change=on_components_change,
         column_config={
             "name": "Nombre Componente",
             "inventory": "Nº Inventario",
@@ -289,8 +316,7 @@ def show_form(memory):
             "serial": "Nº Serie"
         }
     )
-    if edited_df is not None:
-        st.session_state["components_df"] = edited_df
+    # Ya no asignamos edited_df directamente aquí para evitar el "flasheo" de reset
 
     st.markdown("---")
     st.subheader("Extras")
