@@ -41,9 +41,17 @@ def main():
 
     memory = load_memory()
     
-    # --- SIDEBAR: KNOWLEDGE BASE ---
+    # --- SIDEBAR & MEMORY ---
     with st.sidebar:
-        st.header("🧠 Memoria del Agente")
+        st.title("🤖 Ajustes de Agente")
+        if st.button("🧹 Limpiar Formulario", use_container_width=True):
+            # Clear all except constant defaults
+            for k in fields:
+                st.session_state[k] = defaults.get(k, "")
+            st.session_state["components"] = []
+            st.rerun()
+
+        st.markdown("---")
         if st.checkbox("Ver/Editar Memoria"):
             st.json(memory)
             
@@ -102,18 +110,52 @@ def main():
         st.subheader("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
-        st.text_input("Modelo", key="model")
+        
+        # Model input with auto-fill logic
+        model = st.text_input("Modelo", key="model")
+        
+        # --- MODEL MEMORY TRIGGER ---
+        if model and model in memory.get("defaults", {}).get("models", {}):
+            m_data = memory["defaults"]["models"][model]
+            
+            # Auto-fill if changed
+            if st.session_state.get("last_auto_model") != model:
+                st.session_state["description"] = m_data.get("description", "")
+                st.session_state["brand"] = m_data.get("brand", "")
+                st.session_state["provider"] = m_data.get("provider", "")
+                st.session_state["contact"] = m_data.get("contact", "")
+                st.session_state["last_auto_model"] = model
+                st.rerun()
+
         st.text_input("Nº Serie", key="serial")
         st.text_input("Proveedor", key="provider")
         st.text_input("Propiedad", key="property")
         st.text_input("Contacto", key="contact")
         
-        st.caption("Fechas")
+        st.caption("Fechas y Garantía")
         c_d1, c_d2 = st.columns(2)
-        # Use date_input for better user experience
+        
+        # reception_date as the master
         reception_date_obj = c_d1.date_input("Recepción", value=datetime.now())
-        acceptance_date_obj = c_d2.date_input("Aceptación", value=datetime.now())
-        warranty_end_obj = st.date_input("Fin Garantía", value=None)
+        
+        # acceptance_date defaults to reception_date
+        acceptance_date_obj = c_d2.date_input("Aceptación", value=reception_date_obj)
+        
+        # Warranty Selection
+        warranty_years = st.radio("Años de Garantía", options=[0, 1, 2, 3, 4], horizontal=True, index=2) # Default 2 years?
+        
+        # Calculate warranty end
+        if warranty_years > 0:
+            try:
+                # Basic addition of years
+                calc_end = acceptance_date_obj.replace(year=acceptance_date_obj.year + warranty_years)
+            except ValueError:
+                # Handle Feb 29th
+                calc_end = acceptance_date_obj + (datetime(acceptance_date_obj.year + warranty_years, 1, 1) - datetime(acceptance_date_obj.year, 1, 1))
+        else:
+            calc_end = None
+            
+        warranty_end_obj = st.date_input("Fin Garantía", value=calc_end)
         
         # Format dates as dd/mm/aaaa strings for the PDF
         reception_date = reception_date_obj.strftime("%d/%m/%Y") if reception_date_obj else ""
@@ -251,6 +293,19 @@ def main():
                 "center_code": st.session_state["center_code"]
             }
             
+        if model:
+            if "models" not in memory["defaults"]:
+                memory["defaults"]["models"] = {}
+                
+            # Save or Update model data
+            memory["defaults"]["models"][model] = {
+                "description": st.session_state["description"],
+                "brand": st.session_state["brand"],
+                "provider": st.session_state["provider"],
+                "contact": st.session_state["contact"]
+            }
+            
+        if service or model:
             try:
                 with open(MEMORY_FILE, "w", encoding="utf-8") as f:
                     json.dump(memory, f, indent=4, ensure_ascii=False)
