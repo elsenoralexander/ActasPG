@@ -1,6 +1,4 @@
 streamlit
-easyocr
-numpy
-pillow
+pandas
 pypdf
 reportlab

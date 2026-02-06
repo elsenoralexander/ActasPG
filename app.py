@@ -3,21 +3,11 @@ import json
 import os
 from datetime import datetime
 import fill_acta  # Our local script
-import ocr_utils
-import easyocr
-import numpy as np
-from PIL import Image
 
 # --- CONFIG ---
 st.set_page_config(page_title="Agente de Actas", layout="wide")
 
 MEMORY_FILE = "memory.json"
-
-# --- CACHED RESOURCES ---
-@st.cache_resource
-def get_ocr_reader():
-    # Downloads model 1st time
-    return easyocr.Reader(['es', 'en'], gpu=False) 
 
 # --- HELPERS ---
 def load_memory():
@@ -55,39 +45,6 @@ def main():
         if st.checkbox("Ver/Editar Memoria"):
             st.json(memory)
             
-    # --- PHOTO UPLOAD ---
-    with st.expander("📸 Subir Foto de Placa / Equipo (OCR)", expanded=True):
-        uploaded_file = st.file_uploader("Arrastra aquí la foto...", type=['png', 'jpg', 'jpeg'])
-        
-        if uploaded_file is not None:
-            image = Image.open(uploaded_file)
-            st.image(image, width=300)
-            
-            if st.button("🔍 Analizar Foto (OCR)"):
-                with st.spinner("Leyendo texto..."):
-                    try:
-                        reader = get_ocr_reader()
-                        # EasyOCR expects bytes or numpy array
-                        img_np = np.array(image)
-                        result = reader.readtext(img_np, detail=0)
-                        text = " ".join(result)
-                        st.info(f"Texto detectado: {text[:100]}...")
-                        
-                        # Extract Data
-                        extracted = ocr_utils.extract_equipment_data(text)
-                        
-                        # Update Session State
-                        if "brand" in extracted: st.session_state["brand"] = extracted["brand"]
-                        if "model" in extracted: st.session_state["model"] = extracted["model"]
-                        if "serial_number" in extracted: st.session_state["serial"] = extracted["serial_number"]
-                        
-                        st.success("¡Datos extraídos! Comprueba los campos abajo.")
-                        # Rerun to update input fields
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"Error en OCR: {e}")
-    
     # --- FORM ---
     col1, col2 = st.columns(2)
     
