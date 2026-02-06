@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+last_data.json
+Acta_Generada_Web.pdf
+Acta_Rellenada.pdf
+Acta_Rellenada_Web.pdf
+memory.json
