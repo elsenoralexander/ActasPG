@@ -53,8 +53,15 @@ def main():
         st.subheader("📍 Ubicación")
         
         # Smart Service Selection
-        service_options = [""] + list(memory["defaults"]["services"].keys())
-        service = st.selectbox("Servicio", service_options, index=0)
+        service_options = [""] + list(memory.get("defaults", {}).get("services", {}).keys())
+        
+        s_col1, s_col2 = st.columns([3, 1])
+        is_new_service = s_col2.checkbox("Nuevo ➕")
+        
+        if is_new_service:
+            service = s_col1.text_input("Nuevo Servicio", help="Escribe el nombre del nuevo servicio")
+        else:
+            service = s_col1.selectbox("Servicio", service_options, index=0)
         
         # Smart Learning Logic (Triggered on change)
         if service and service in memory["defaults"]["services"]:
@@ -226,6 +233,27 @@ def main():
             "components": st.session_state["components"] 
         }
         
+        # --- UPDATE MEMORY (Learning) ---
+        if service:
+            if "services" not in memory["defaults"]: 
+                memory["defaults"]["services"] = {}
+            
+            # Save or Update service data
+            memory["defaults"]["services"][service] = {
+                "manager": st.session_state["manager"],
+                "floor": st.session_state["floor"],
+                "unit": st.session_state["unit"],
+                "hole": st.session_state["hole"],
+                "center_name": st.session_state["center_name"],
+                "center_code": st.session_state["center_code"]
+            }
+            
+            try:
+                with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+                    json.dump(memory, f, indent=4, ensure_ascii=False)
+            except Exception as e:
+                st.warning(f"No se pudo guardar la memoria: {e}")
+            
         # Save JSON (for record)
         with open("last_data.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
