@@ -102,10 +102,15 @@ def main():
         
         st.caption("Fechas")
         c_d1, c_d2 = st.columns(2)
-        today = datetime.now().strftime("%d/%m/%Y")
-        reception_date = c_d1.text_input("Recepción", value=today)
-        acceptance_date = c_d2.text_input("Aceptación", value=today)
-        warranty_end = st.text_input("Fin Garantía (dd/mm/aaaa)")
+        # Use date_input for better user experience
+        reception_date_obj = c_d1.date_input("Recepción", value=datetime.now())
+        acceptance_date_obj = c_d2.date_input("Aceptación", value=datetime.now())
+        warranty_end_obj = st.date_input("Fin Garantía", value=None)
+        
+        # Format dates as dd/mm/aaaa strings for the PDF
+        reception_date = reception_date_obj.strftime("%d/%m/%Y") if reception_date_obj else ""
+        acceptance_date = acceptance_date_obj.strftime("%d/%m/%Y") if acceptance_date_obj else ""
+        warranty_end = warranty_end_obj.strftime("%d/%m/%Y") if warranty_end_obj else ""
 
     st.markdown("---")
     
