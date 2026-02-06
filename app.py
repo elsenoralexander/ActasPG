@@ -169,9 +169,16 @@ def show_database(memory):
                         st.warning("Modelo eliminado.")
                         st.rerun()
 
+# --- GLOBAL DEFAULTS ---
+GLOBAL_DEFAULTS = {
+    "center_name": "POLICLINICA GIPUZKOA",
+    "center_code": "001",
+    "description": "",
+    "main_inventory_number": "INV-"
+}
+
 def show_baja_form(memory):
     st.title("🗑️ Nueva Acta de Baja")
-    st.info("Esta sección se está configurando. En cuanto tengamos el diseño del PDF, los campos aparecerán aquí.")
     
     # Common fields that share memory
     col1, col2 = st.columns(2)
@@ -180,7 +187,11 @@ def show_baja_form(memory):
         service_options = [""] + list(memory.get("defaults", {}).get("services", {}).keys())
         service = st.selectbox("Servicio", service_options, key="service_baja", on_change=on_service_change)
         st.text_input("Centro", key="center_name")
+        st.text_input("Código Centro", key="center_code")
         st.text_input("Responsable", key="manager")
+        st.text_input("Unidad", key="unit")
+        st.text_input("Planta", key="floor")
+        st.text_input("Hueco", key="hole")
     
     with col2:
         st.subheader("📦 Equipo")
@@ -188,47 +199,105 @@ def show_baja_form(memory):
         st.text_input("Marca", key="brand")
         st.text_input("Modelo", key="model", on_change=on_model_change)
         st.text_input("Nº Serie", key="serial")
+        st.text_input("Propiedad", key="property")
+        st.text_input("Nº Inventario", key="main_inventory_number")
+        st.text_input("Nº Inventario Padre", key="parent_inventory_number")
 
     st.markdown("---")
-    st.warning("⚠️ Pendiente de completar con los campos específicos del Acta de Baja (Motivo, Destino, etc.).")
+    st.subheader("📑 Informe Justificativo")
+    c_just1, c_just2 = st.columns([1, 2])
+    with c_just1:
+        st.date_input("Fecha Baja", key="baja_date_val")
+    with c_just2:
+        justification = st.text_area("Justificación de la Baja", key="justification_report", height=100)
+
+    st.markdown("---")
+    st.subheader("✅ Aceptación de la Baja")
+    c_acc1, c_acc2 = st.columns(2)
+    with c_acc1:
+        rep_budget = st.checkbox("Se adjunta presupuesto reparación", key="repair_budget", value=True)
+        rep_repos = st.checkbox("Se adjunta presupuesto reposición", key="replacement_budget", value=True)
+        sat_off = st.checkbox("Se adjunta SAT oficial justificativo", key="sat_report", value=True)
+    with c_acc2:
+        st.text_input("Número Orden de Trabajo", key="work_order_number")
+        other_docs = st.checkbox("Se adjuntan otros documentos", key="other_docs", value=True)
+        data_clean = st.checkbox("Limpieza de datos de paciente realizada", key="data_cleaned", value=True)
+
+    st.markdown("---")
+    st.subheader("Extras")
+    observations = st.text_area("Observaciones", key="obs_baja", height=100)
+    
+    if st.button("🚀 GENERAR ACTA DE BAJA (PDF)", type="primary", use_container_width=True):
+        baja_date = st.session_state["baja_date_val"].strftime("%d/%m/%Y") if st.session_state["baja_date_val"] else ""
+        
+        data = {
+            "center_name": st.session_state["center_name"], "center_code": st.session_state["center_code"],
+            "service": service if service else "", "manager": st.session_state["manager"],
+            "unit": st.session_state["unit"], "floor": st.session_state["floor"], "hole": st.session_state["hole"],
+            "description": st.session_state["description"], "brand": st.session_state["brand"],
+            "model": st.session_state["model"], "serial_number": st.session_state["serial"],
+            "property": st.session_state["property"], "main_inventory_number": st.session_state["main_inventory_number"],
+            "parent_inventory_number": st.session_state["parent_inventory_number"],
+            "baja_date": baja_date, "justification_report": justification,
+            "repair_budget": rep_budget, "replacement_budget": rep_repos,
+            "sat_report": sat_off, "work_order_number": st.session_state["work_order_number"],
+            "other_docs": other_docs, "data_cleaned": data_clean, "observations": observations
+        }
+        
+        # --- UPDATE MEMORY ---
+        if service:
+            if "services" not in memory["defaults"]: memory["defaults"]["services"] = {}
+            memory["defaults"]["services"][service] = {
+                "manager": st.session_state["manager"], "floor": st.session_state["floor"],
+                "unit": st.session_state["unit"], "hole": st.session_state["hole"],
+                "center_name": st.session_state["center_name"], "center_code": st.session_state["center_code"]
+            }
+        
+        model_key = st.session_state.get("model")
+        if model_key:
+            if "models" not in memory["defaults"]: memory["defaults"]["models"] = {}
+            memory["defaults"]["models"][model_key] = {
+                "description": st.session_state["description"], "brand": st.session_state["brand"]
+            }
+        
+        save_memory(memory)
+            
+        try:
+            template_filename = "acta baja equipos.pdf"
+            fill_acta.fill_pdf(template_filename, "Acta_Baja_Generada.pdf", data, report_type="baja")
+            st.success("¡Acta de Baja Generada!")
+            with open("Acta_Baja_Generada.pdf", "rb") as pdf_file:
+                st.download_button("📥 Descargar PDF de Baja", pdf_file, "Acta_Baja_Equipo.pdf", "application/pdf")
+        except Exception as e:
+            st.error(f"Error generando PDF: {e}")
 
 def show_reception_form(memory):
     st.title("📋 Nueva Acta de Recepción")
     
-    # Initialize Session State
-    defaults = {
-        "center_name": "POLICLINICA GIPUZKOA",
-        "center_code": "001",
-        "description": "",
-        "main_inventory_number": "INV-"
-    }
-    
     fields = ["center_name", "center_code", "manager", "unit", "floor", 
               "hole", "description", "brand", "model", "serial", "provider",
               "property", "contact", "main_inventory_number", "parent_inventory_number",
-              "order_number", "amount_tax_included"]
+              "order_number", "amount_tax_included", "work_order_number", "justification_report"]
     for f in fields:
         if f not in st.session_state:
-            st.session_state[f] = defaults.get(f, "")
+            st.session_state[f] = GLOBAL_DEFAULTS.get(f, "")
             
-    if "reception_date_val" not in st.session_state:
-        st.session_state["reception_date_val"] = datetime.now().date()
-    if "acceptance_date_val" not in st.session_state:
-        st.session_state["acceptance_date_val"] = datetime.now().date()
-    if "warranty_end_val" not in st.session_state:
-        st.session_state["warranty_end_val"] = None
-    if "warranty_years" not in st.session_state:
-        st.session_state["warranty_years"] = 2
+    if "reception_date_val" not in st.session_state: st.session_state["reception_date_val"] = datetime.now().date()
+    if "acceptance_date_val" not in st.session_state: st.session_state["acceptance_date_val"] = datetime.now().date()
+    if "baja_date_val" not in st.session_state: st.session_state["baja_date_val"] = datetime.now().date()
+    if "warranty_end_val" not in st.session_state: st.session_state["warranty_end_val"] = None
+    if "warranty_years" not in st.session_state: st.session_state["warranty_years"] = 2
     if "components_df" not in st.session_state:
         st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
 
     # Sidebar: Reset button
     with st.sidebar:
         if st.button("🧹 Limpiar Formulario", use_container_width=True):
-            for k in fields: st.session_state[k] = defaults.get(k, "")
+            for k in fields: st.session_state[k] = GLOBAL_DEFAULTS.get(k, "")
             st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
             st.session_state["reception_date_val"] = datetime.now().date()
             st.session_state["acceptance_date_val"] = datetime.now().date()
+            st.session_state["baja_date_val"] = datetime.now().date()
             st.session_state["warranty_end_val"] = None
             st.rerun()
 

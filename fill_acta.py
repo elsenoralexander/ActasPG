@@ -60,12 +60,36 @@ COORDINATE_MAPS = {
         "table": {"start_y": 340, "row_height": 18, "cols": [60, 210, 300, 380, 440]}
     },
     "baja": {
-        "template": "CORP27.4_GM1_F4_Acta baja equipos electromédicos.pdf", # Guessing name
-        "text": {}, # Needs filling
-        "bools": {}, # Needs filling
-        "states": {}, # Needs filling
-        "obs": {"x": 60, "start_y": 300, "min_y": 200, "width": 460}, # Placeholder
-        "table": None # Decommissioning usually doesn't have a components table, but we'll see
+        "template": "acta baja equipos.pdf",
+        "text": {
+            "center_name": (145, 696),
+            "service": (110, 683),
+            "manager": (125, 670),
+            "center_code": (440, 696),
+            "unit": (380, 683),
+            "floor": (360, 670),
+            "hole": (465, 670),
+            "description": (130, 622),
+            "brand": (130, 609),
+            "serial_number": (130, 596),
+            "main_inventory_number": (145, 583),
+            "model": (360, 609),
+            "property": (360, 596),
+            "parent_inventory_number": (355, 583),
+            "baja_date": (130, 534),
+            "work_order_number": (445, 234),
+        },
+        "bools": {
+            "repair_budget": {True: (254, 234), False: (285, 234)},
+            "replacement_budget": {True: (254, 221), False: (285, 221)},
+            "sat_report": {True: (254, 208), False: (285, 208)},
+            "other_docs": {True: (254, 195), False: (285, 195)},
+            "data_cleaned": {True: (254, 182), False: (285, 182)},
+        },
+        "states": {}, 
+        "obs": {"x": 60, "start_y": 375, "min_y": 255, "width": 460},
+        "justification": {"x": 60, "start_y": 520, "min_y": 400, "width": 460},
+        "table": None
     }
 }
 
@@ -137,6 +161,40 @@ def create_overlay(data, report_type="recepcion"):
             else:
                 current_line = test_line
         if current_line: can.drawString(obs_x, curr_y, current_line)
+        can.setFont("Helvetica", 10)
+
+    # --- FILL JUSTIFICATION (Baja only) ---
+    just_config = config.get("justification")
+    if "justification_report" in data and just_config:
+        j_text = data["justification_report"]
+        j_x, j_y, j_min, j_w = just_config["x"], just_config["start_y"], just_config["min_y"], just_config["width"]
+        f_size = 10
+        def calc_h(t, s, w):
+            ls = 0
+            curr = ""
+            for wd in t.split(" "):
+                tst = curr + " " + wd if curr else wd
+                if can.stringWidth(tst, "Helvetica", s) > w:
+                    ls += 1
+                    curr = wd
+                else: curr = tst
+            if curr: ls += 1
+            return ls * (s + 2)
+        while f_size > 4:
+            if (j_y - calc_h(j_text, f_size, j_w)) >= j_min: break
+            f_size -= 0.5
+        can.setFont("Helvetica", f_size)
+        lh = f_size + 2
+        cy = j_y
+        curr = ""
+        for wd in j_text.split(" "):
+            tst = curr + " " + wd if curr else wd
+            if can.stringWidth(tst, "Helvetica", f_size) > j_w:
+                can.drawString(j_x, cy, curr)
+                cy -= lh
+                curr = wd
+            else: curr = tst
+        if curr: can.drawString(j_x, cy, curr)
         can.setFont("Helvetica", 10)
 
     # --- FILL BOOLEANS ---
