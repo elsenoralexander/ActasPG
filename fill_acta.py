@@ -11,6 +11,17 @@ def create_overlay(data):
     # Font settings
     can.setFont("Helvetica", 10)
     
+    def draw_scaled_string(canvas, text, x, y, max_width, initial_font_size=10):
+        text = str(text)
+        font_size = initial_font_size
+        while font_size > 4:
+            if canvas.stringWidth(text, "Helvetica", font_size) <= max_width:
+                break
+            font_size -= 0.5
+        canvas.setFont("Helvetica", font_size)
+        canvas.drawString(x, y, text)
+        canvas.setFont("Helvetica", initial_font_size) # Reset
+    
     # Coordinate Mapping - Visual Corrections
     
     # Left Column: User wanted "closer to edge" -> Shift X from 140 to 110
@@ -174,11 +185,21 @@ def create_overlay(data):
             current_y = start_y - (i * row_height)
             if current_y < 50: break
             
-            can.drawString(60, current_y, str(comp.get("name", "")))
-            can.drawString(210, current_y, str(comp.get("inventory", ""))) # Corrected X to 210
-            can.drawString(300, current_y, str(comp.get("brand", "")))
-            can.drawString(380, current_y, str(comp.get("model", "")))
-            can.drawString(440, current_y, str(comp.get("serial", "")))
+            # Use draw_scaled_string with user-provided X boundaries
+            # Component Name: x=60, max_x=190 -> width=130
+            draw_scaled_string(can, comp.get("name", ""), 60, current_y, 130)
+            
+            # Nº Inventario: x=210, max_x=280 -> width=70
+            draw_scaled_string(can, comp.get("inventory", ""), 210, current_y, 70)
+            
+            # Marca: x=300, max_x=360 -> width=60
+            draw_scaled_string(can, comp.get("brand", ""), 300, current_y, 60)
+            
+            # Modelo: x=380, max_x=435 -> width=55
+            draw_scaled_string(can, comp.get("model", ""), 380, current_y, 55)
+            
+            # Nº Serie: x=440, max_x=520 -> width=80
+            draw_scaled_string(can, comp.get("serial", ""), 440, current_y, 80)
     
     can.save()
     packet.seek(0)
