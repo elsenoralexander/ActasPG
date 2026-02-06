@@ -261,23 +261,36 @@ def show_form(memory):
 
     st.markdown("---")
     st.subheader("🔧 Componentes del Equipo")
-    past_models = sorted(list(memory.get("defaults", {}).get("models", {}).keys()))
-    past_brands = list(set([m.get("brand") for m in memory.get("defaults", {}).get("models", {}).values() if m.get("brand")]))
-    
+    # Botones para añadir filas explícitamente (ayuda a evitar borrados y permite poner marca por defecto)
+    c_btn1, c_btn2 = st.columns([1, 2])
+    with c_btn1:
+        if st.button("➕ Fila Vacía", use_container_width=True):
+            new_row = pd.DataFrame([{"name":"", "inventory":"", "brand":"", "model":"", "serial":""}])
+            st.session_state["components_df"] = pd.concat([st.session_state["components_df"], new_row], ignore_index=True)
+            st.rerun()
+    with c_btn2:
+        main_brand = st.session_state.get("brand", "")
+        if st.button(f"➕ Fila Marca: {main_brand if main_brand else '...'}", use_container_width=True):
+            new_row = pd.DataFrame([{"name":"", "inventory":"", "brand":main_brand, "model":"", "serial":""}])
+            st.session_state["components_df"] = pd.concat([st.session_state["components_df"], new_row], ignore_index=True)
+            st.rerun()
+
+    # Editor sin restricciones (Texto libre)
     edited_df = st.data_editor(
         st.session_state["components_df"],
         num_rows="dynamic",
         use_container_width=True,
-        key="components_editor_v5",
+        key="components_editor_fixed",
         column_config={
             "name": "Nombre Componente",
             "inventory": "Nº Inventario",
-            "brand": st.column_config.SelectboxColumn("Marca", options=past_brands),
-            "model": st.column_config.SelectboxColumn("Modelo", options=past_models),
+            "brand": "Marca (Libre)",
+            "model": "Modelo (Libre)",
             "serial": "Nº Serie"
         }
     )
-    if edited_df is not None: st.session_state["components_df"] = edited_df
+    if edited_df is not None:
+        st.session_state["components_df"] = edited_df
 
     st.markdown("---")
     st.subheader("Extras")
