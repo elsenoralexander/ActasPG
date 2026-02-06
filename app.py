@@ -246,7 +246,7 @@ def show_baja_form(memory):
             "other_docs": other_docs, "data_cleaned": data_clean, "observations": observations
         }
         
-        # --- UPDATE MEMORY ---
+        # Guardar en memoria
         if service:
             if "services" not in memory["defaults"]: memory["defaults"]["services"] = {}
             memory["defaults"]["services"][service] = {
@@ -261,17 +261,31 @@ def show_baja_form(memory):
             memory["defaults"]["models"][model_key] = {
                 "description": st.session_state["description"], "brand": st.session_state["brand"]
             }
-        
         save_memory(memory)
             
         try:
+            import unicodedata
             template_filename = "acta baja equipos.pdf"
-            fill_acta.fill_pdf(template_filename, "Acta_Baja_Generada.pdf", data, report_type="baja")
-            st.success("¡Acta de Baja Generada!")
-            with open("Acta_Baja_Generada.pdf", "rb") as pdf_file:
-                st.download_button("📥 Descargar PDF de Baja", pdf_file, "Acta_Baja_Equipo.pdf", "application/pdf")
+            actual_template = next((f for f in os.listdir(".") if unicodedata.normalize('NFC', f) == unicodedata.normalize('NFC', template_filename)), template_filename)
+            
+            output_path = "Acta_Baja_Generada.pdf"
+            fill_acta.fill_pdf(actual_template, output_path, data, report_type="baja")
+            
+            with open(output_path, "rb") as f:
+                st.session_state["baja_pdf_content"] = f.read()
+            st.success("✅ Acta de Baja Generada con éxito.")
         except Exception as e:
-            st.error(f"Error generando PDF: {e}")
+            st.error(f"Error generando PDF de Baja: {e}")
+
+    # Mostrar botón de descarga si el PDF está listo
+    if "baja_pdf_content" in st.session_state:
+        st.download_button(
+            label="📥 DESCARGAR ACTA DE BAJA",
+            data=st.session_state["baja_pdf_content"],
+            file_name=f"Acta_Baja_{st.session_state.get('serial', 'EQUIPO')}.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
 
 def show_reception_form(memory):
     st.title("📋 Nueva Acta de Recepción")
@@ -461,12 +475,25 @@ def show_reception_form(memory):
             import unicodedata
             template_filename = "CORP27.3_GM1_F3_Acta recepción equipos electromédicos.pdf"
             actual_template = next((f for f in os.listdir(".") if unicodedata.normalize('NFC', f) == unicodedata.normalize('NFC', template_filename)), template_filename)
-            fill_acta.fill_pdf(actual_template, "Acta_Generada_Web.pdf", data)
-            st.success("¡PDF Generado!")
-            with open("Acta_Generada_Web.pdf", "rb") as pdf_file:
-                st.download_button("📥 Descargar PDF", pdf_file, "Acta_Recepcion.pdf", "application/pdf")
+            
+            output_path = "Acta_Generada_Web.pdf"
+            fill_acta.fill_pdf(actual_template, output_path, data)
+            
+            with open(output_path, "rb") as f:
+                st.session_state["recepcion_pdf_content"] = f.read()
+            st.success("✅ Acta de Recepción Generada con éxito.")
         except Exception as e:
             st.error(f"Error generando PDF: {e}")
+
+    # Mostrar botón de descarga si el PDF está listo
+    if "recepcion_pdf_content" in st.session_state:
+        st.download_button(
+            label="📥 DESCARGAR ACTA DE RECEPCIÓN",
+            data=st.session_state["recepcion_pdf_content"],
+            file_name=f"Acta_Recepcion_{st.session_state.get('serial', 'EQUIPO')}.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
 
 def main():
     # --- NAVIGATION ---
