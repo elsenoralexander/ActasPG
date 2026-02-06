@@ -169,7 +169,30 @@ def show_database(memory):
                         st.warning("Modelo eliminado.")
                         st.rerun()
 
-def show_form(memory):
+def show_baja_form(memory):
+    st.title("🗑️ Nueva Acta de Baja")
+    st.info("Esta sección se está configurando. En cuanto tengamos el diseño del PDF, los campos aparecerán aquí.")
+    
+    # Common fields that share memory
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("📍 Ubicación")
+        service_options = [""] + list(memory.get("defaults", {}).get("services", {}).keys())
+        service = st.selectbox("Servicio", service_options, key="service_baja", on_change=on_service_change)
+        st.text_input("Centro", key="center_name")
+        st.text_input("Responsable", key="manager")
+    
+    with col2:
+        st.subheader("📦 Equipo")
+        st.text_input("Descripción", key="description")
+        st.text_input("Marca", key="brand")
+        st.text_input("Modelo", key="model", on_change=on_model_change)
+        st.text_input("Nº Serie", key="serial")
+
+    st.markdown("---")
+    st.warning("⚠️ Pendiente de completar con los campos específicos del Acta de Baja (Motivo, Destino, etc.).")
+
+def show_reception_form(memory):
     st.title("📋 Nueva Acta de Recepción")
     
     # Initialize Session State
@@ -379,13 +402,23 @@ def main():
     with st.sidebar:
         st.title("🤖 Agente de Actas")
         view = st.radio("Sección", ["📝 Nueva Acta", "💾 Base de Datos"], label_visibility="collapsed")
+        
+        report_type = "recepcion"
+        if view == "📝 Nueva Acta":
+            st.markdown("---")
+            report_type = st.radio("Tipo de Acta", ["Recepción", "Baja"], horizontal=False)
+            report_type = "recepcion" if report_type == "Recepción" else "baja"
+            
         st.markdown("---")
 
     memory = load_memory()
     if view == "💾 Base de Datos":
         show_database(memory)
     else:
-        show_form(memory)
+        if report_type == "recepcion":
+            show_reception_form(memory)
+        else:
+            show_baja_form(memory)
 
 if __name__ == "__main__":
     main()
