@@ -31,13 +31,18 @@ def main():
     st.title("📋 Agente de Actas de Recepción")
     
     # Initialize Session State for fields if not present
+    defaults = {
+        "center_code": "001",
+        "description": "Monitor",
+        "main_inventory_number": "INV-"
+    }
     fields = ["center_name", "center_code", "manager", "unit", "floor", 
               "hole", "description", "brand", "model", "serial", "provider",
               "property", "contact", "main_inventory_number", "parent_inventory_number",
               "order_number", "amount_tax_included"]
     for f in fields:
         if f not in st.session_state:
-            st.session_state[f] = ""
+            st.session_state[f] = defaults.get(f, "")
     
     if "components" not in st.session_state:
         st.session_state["components"] = []
@@ -116,7 +121,7 @@ def main():
 
         # Inputs linked to st.session_state
         st.text_input("Centro", key="center_name")
-        st.text_input("Código Centro", key="center_code", value="001")
+        st.text_input("Código Centro", key="center_code")
         st.text_input("Responsable", key="manager")
         st.text_input("Unidad", key="unit")
         st.text_input("Planta", key="floor")
@@ -124,7 +129,7 @@ def main():
 
     with col2:
         st.subheader("📦 Equipo")
-        st.text_input("Descripción", key="description", value="Monitor")
+        st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
         st.text_input("Modelo", key="model")
         st.text_input("Nº Serie", key="serial")
@@ -145,7 +150,7 @@ def main():
     st.subheader("📝 Registro y Aceptación")
     reg_col1, reg_col2 = st.columns(2)
     with reg_col1:
-        st.text_input("Nº Inventario", key="main_inventory_number", value="INV-")
+        st.text_input("Nº Inventario", key="main_inventory_number")
         st.text_input("Nº Inventario Padre", key="parent_inventory_number")
     with reg_col2:
         st.text_input("Número Pedido", key="order_number")
