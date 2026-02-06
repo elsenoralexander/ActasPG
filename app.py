@@ -27,7 +27,8 @@ def save_memory(memory):
 # --- CALLBACKS ---
 def on_service_change():
     memory = load_memory()
-    service = st.session_state.get("service")
+    # Check all possible keys for service selection
+    service = st.session_state.get("service") or st.session_state.get("service_baja")
     if service and service in memory.get("defaults", {}).get("services", {}):
         s_data = memory["defaults"]["services"][service]
         st.session_state["manager"] = s_data.get("manager", "")
@@ -39,7 +40,8 @@ def on_service_change():
 
 def on_model_change():
     memory = load_memory()
-    model = st.session_state.get("model")
+    # Check all possible keys for model selection (though it might be same key, better safe)
+    model = st.session_state.get("model") or st.session_state.get("model_baja")
     if model and model in memory.get("defaults", {}).get("models", {}):
         m_data = memory["defaults"]["models"][model]
         if m_data.get("description"): st.session_state["description"] = m_data["description"]
