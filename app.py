@@ -22,6 +22,7 @@ def main():
     
     # Initialize Session State for fields if not present
     defaults = {
+        "center_name": "POLICLINICA GIPUZKOA",
         "center_code": "001",
         "description": "Monitor",
         "main_inventory_number": "INV-"
@@ -68,13 +69,18 @@ def main():
             # Or just overwrite: User selects Service -> We fill logic.
             # Ideally we'd compare with previous service selection.
             
-            # Simple override for now (User can edit after):
-            if st.session_state["manager"] == "": st.session_state["manager"] = s_data.get("manager", "")
-            if st.session_state["floor"] == "": st.session_state["floor"] = s_data.get("floor", "")
-            if st.session_state["unit"] == "": st.session_state["unit"] = s_data.get("unit", "")
-            if st.session_state["hole"] == "": st.session_state["hole"] = s_data.get("hole", "")
-            # Only set center if empty to allow global default
-            if st.session_state["center_name"] == "": st.session_state["center_name"] = s_data.get("center_name", "Hospital General")
+            # Update session state settings for the service
+            if s_data.get("manager"): st.session_state["manager"] = s_data["manager"]
+            if s_data.get("floor"): st.session_state["floor"] = s_data["floor"]
+            if s_data.get("unit"): st.session_state["unit"] = s_data["unit"]
+            if s_data.get("hole"): st.session_state["hole"] = s_data["hole"]
+            if s_data.get("center_name"): st.session_state["center_name"] = s_data["center_name"]
+            if s_data.get("center_code"): st.session_state["center_code"] = s_data["center_code"]
+            
+            # Use st.rerun() to reflect changes in widgets immediately if service changed
+            if "prev_service" not in st.session_state or st.session_state["prev_service"] != service:
+                st.session_state["prev_service"] = service
+                st.rerun()
 
         # Inputs linked to st.session_state
         st.text_input("Centro", key="center_name")
@@ -139,8 +145,8 @@ def main():
     with c3:
         st.markdown("**Mantenimiento y Estado**")
         preventive = st.checkbox("Mant. Preventivo", value=True)
-        contract = st.checkbox("Contrato Mant.", value=False)
-        periodicity = st.selectbox("Periodicidad", ["Semestral", "Anual", "Trimestral"])
+        contract = st.checkbox("Contrato Mant.", value=True)
+        periodicity = st.selectbox("Periodicidad", ["Anual", "Semestral", "Trimestral", "Bienal"])
         status = st.radio("Estado del Equipo", ["good", "bad", "obsolete"], format_func=lambda x: {"good":"Buen Estado", "bad":"Mal Estado", "obsolete":"Obsoleto"}[x])
 
     st.markdown("---")
