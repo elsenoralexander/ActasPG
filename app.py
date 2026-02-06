@@ -15,7 +15,45 @@ def load_memory():
     if os.path.exists(MEMORY_FILE):
         with open(MEMORY_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {"defaults": {"services": {}, "providers": {}}}
+    return {"defaults": {"services": {}, "models": {}}}
+
+# --- CALLBACKS ---
+def on_service_change():
+    memory = load_memory()
+    service = st.session_state.get("service")
+    if service and service in memory.get("defaults", {}).get("services", {}):
+        s_data = memory["defaults"]["services"][service]
+        st.session_state["manager"] = s_data.get("manager", "")
+        st.session_state["floor"] = s_data.get("floor", "")
+        st.session_state["unit"] = s_data.get("unit", "")
+        st.session_state["hole"] = s_data.get("hole", "")
+        st.session_state["center_name"] = s_data.get("center_name", "POLICLINICA GIPUZKOA")
+        st.session_state["center_code"] = s_data.get("center_code", "001")
+
+def on_model_change():
+    memory = load_memory()
+    model = st.session_state.get("model")
+    if model and model in memory.get("defaults", {}).get("models", {}):
+        m_data = memory["defaults"]["models"][model]
+        st.session_state["description"] = m_data.get("description", "")
+        st.session_state["brand"] = m_data.get("brand", "")
+        st.session_state["provider"] = m_data.get("provider", "")
+        st.session_state["contact"] = m_data.get("contact", "")
+
+def on_reception_change():
+    # Sync Acceptance date with Reception date
+    st.session_state["acceptance_date_val"] = st.session_state["reception_date_val"]
+
+def calculate_warranty_end():
+    years = st.session_state.get("warranty_years", 0)
+    start_date = st.session_state.get("acceptance_date_val", datetime.now().date())
+    if years > 0:
+        try:
+            st.session_state["warranty_end_val"] = start_date.replace(year=start_date.year + years)
+        except ValueError: # Feb 29
+            st.session_state["warranty_end_val"] = start_date + (datetime(start_date.year + years, 1, 1).date() - datetime(start_date.year, 1, 1).date())
+    else:
+        st.session_state["warranty_end_val"] = None
 
 # --- MAIN ---
 def main():
@@ -28,6 +66,8 @@ def main():
         "description": "Monitor",
         "main_inventory_number": "INV-"
     }
+    
+    # Core Fields
     fields = ["center_name", "center_code", "manager", "unit", "floor", 
               "hole", "description", "brand", "model", "serial", "provider",
               "property", "contact", "main_inventory_number", "parent_inventory_number",
@@ -35,9 +75,20 @@ def main():
     for f in fields:
         if f not in st.session_state:
             st.session_state[f] = defaults.get(f, "")
-    
-    if "components" not in st.session_state:
-        st.session_state["components"] = []
+            
+    # Date/Time Fields (Stored as objects)
+    if "reception_date_val" not in st.session_state:
+        st.session_state["reception_date_val"] = datetime.now().date()
+    if "acceptance_date_val" not in st.session_state:
+        st.session_state["acceptance_date_val"] = datetime.now().date()
+    if "warranty_end_val" not in st.session_state:
+        st.session_state["warranty_end_val"] = None
+    if "warranty_years" not in st.session_state:
+        st.session_state["warranty_years"] = 2
+
+    # Persistent Components DataFrame
+    if "components_df" not in st.session_state:
+        st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
 
     memory = load_memory()
     
@@ -48,7 +99,10 @@ def main():
             # Clear all except constant defaults
             for k in fields:
                 st.session_state[k] = defaults.get(k, "")
-            st.session_state["components"] = []
+            st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
+            st.session_state["reception_date_val"] = datetime.now().date()
+            st.session_state["acceptance_date_val"] = datetime.now().date()
+            st.session_state["warranty_end_val"] = None
             st.rerun()
 
         st.markdown("---")
@@ -68,35 +122,9 @@ def main():
         is_new_service = s_col2.checkbox("Nuevo ➕")
         
         if is_new_service:
-            service = s_col1.text_input("Nuevo Servicio", help="Escribe el nombre del nuevo servicio")
+            service = st.text_input("Nuevo Servicio", key="service", help="Escribe el nombre del nuevo servicio")
         else:
-            service = s_col1.selectbox("Servicio", service_options, index=0)
-        
-        # Smart Learning Logic (Triggered on change)
-        if service and service in memory["defaults"]["services"]:
-            # Only overwrite if empty or user just selected service? 
-            # Simple approach: If service selected, fill defaults.
-            s_data = memory["defaults"]["services"][service]
-            
-            # Update session state if they match the "defaults logic"
-            # We use text_input "value" argument directly backed by session state? No, key handles it.
-            # We need to manually update session state but avoiding loops.
-            # Let's just update if the user hasn't typed something specific? 
-            # Or just overwrite: User selects Service -> We fill logic.
-            # Ideally we'd compare with previous service selection.
-            
-            # Update session state settings for the service
-            if s_data.get("manager"): st.session_state["manager"] = s_data["manager"]
-            if s_data.get("floor"): st.session_state["floor"] = s_data["floor"]
-            if s_data.get("unit"): st.session_state["unit"] = s_data["unit"]
-            if s_data.get("hole"): st.session_state["hole"] = s_data["hole"]
-            if s_data.get("center_name"): st.session_state["center_name"] = s_data["center_name"]
-            if s_data.get("center_code"): st.session_state["center_code"] = s_data["center_code"]
-            
-            # Use st.rerun() to reflect changes in widgets immediately if service changed
-            if "prev_service" not in st.session_state or st.session_state["prev_service"] != service:
-                st.session_state["prev_service"] = service
-                st.rerun()
+            service = st.selectbox("Servicio", service_options, key="service", on_change=on_service_change)
 
         # Inputs linked to st.session_state
         st.text_input("Centro", key="center_name")
@@ -110,23 +138,7 @@ def main():
         st.subheader("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
-        
-        # Model input with auto-fill logic
-        model = st.text_input("Modelo", key="model")
-        
-        # --- MODEL MEMORY TRIGGER ---
-        if model and model in memory.get("defaults", {}).get("models", {}):
-            m_data = memory["defaults"]["models"][model]
-            
-            # Auto-fill if changed
-            if st.session_state.get("last_auto_model") != model:
-                st.session_state["description"] = m_data.get("description", "")
-                st.session_state["brand"] = m_data.get("brand", "")
-                st.session_state["provider"] = m_data.get("provider", "")
-                st.session_state["contact"] = m_data.get("contact", "")
-                st.session_state["last_auto_model"] = model
-                st.rerun()
-
+        st.text_input("Modelo", key="model", on_change=on_model_change)
         st.text_input("Nº Serie", key="serial")
         st.text_input("Proveedor", key="provider")
         st.text_input("Propiedad", key="property")
@@ -135,32 +147,16 @@ def main():
         st.caption("Fechas y Garantía")
         c_d1, c_d2 = st.columns(2)
         
-        # reception_date as the master
-        reception_date_obj = c_d1.date_input("Recepción", value=datetime.now())
+        c_d1.date_input("Recepción", key="reception_date_val", on_change=on_reception_change)
+        c_d2.date_input("Aceptación", key="acceptance_date_val", on_change=calculate_warranty_end)
         
-        # acceptance_date defaults to reception_date
-        acceptance_date_obj = c_d2.date_input("Aceptación", value=reception_date_obj)
+        st.radio("Años de Garantía", options=[0, 1, 2, 3, 4], key="warranty_years", horizontal=True, on_change=calculate_warranty_end)
+        st.date_input("Fin Garantía", key="warranty_end_val")
         
-        # Warranty Selection
-        warranty_years = st.radio("Años de Garantía", options=[0, 1, 2, 3, 4], horizontal=True, index=2) # Default 2 years?
-        
-        # Calculate warranty end
-        if warranty_years > 0:
-            try:
-                # Basic addition of years
-                calc_end = acceptance_date_obj.replace(year=acceptance_date_obj.year + warranty_years)
-            except ValueError:
-                # Handle Feb 29th
-                calc_end = acceptance_date_obj + (datetime(acceptance_date_obj.year + warranty_years, 1, 1) - datetime(acceptance_date_obj.year, 1, 1))
-        else:
-            calc_end = None
-            
-        warranty_end_obj = st.date_input("Fin Garantía", value=calc_end)
-        
-        # Format dates as dd/mm/aaaa strings for the PDF
-        reception_date = reception_date_obj.strftime("%d/%m/%Y") if reception_date_obj else ""
-        acceptance_date = acceptance_date_obj.strftime("%d/%m/%Y") if acceptance_date_obj else ""
-        warranty_end = warranty_end_obj.strftime("%d/%m/%Y") if warranty_end_obj else ""
+        # Format strings for PDF
+        reception_date = st.session_state["reception_date_val"].strftime("%d/%m/%Y") if st.session_state["reception_date_val"] else ""
+        acceptance_date = st.session_state["acceptance_date_val"].strftime("%d/%m/%Y") if st.session_state["acceptance_date_val"] else ""
+        warranty_end = st.session_state["warranty_end_val"].strftime("%d/%m/%Y") if st.session_state["warranty_end_val"] else ""
 
     st.markdown("---")
     
@@ -207,27 +203,32 @@ def main():
     st.markdown("---")
     
     st.subheader("🔧 Componentes del Equipo")
-    # Using data_editor for easy components management
-    df_components = pd.DataFrame(st.session_state["components"])
-    if df_components.empty:
-        df_components = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
+    
+    # Extract suggestions from memory
+    past_models = []
+    past_brands = []
+    for m in memory.get("defaults", {}).get("models", {}).values():
+        if m.get("model"): past_models.append(m["model"])
+        if m.get("brand"): past_brands.append(m["brand"])
+    
+    # Also look into past services or components if we had a deep history (skipping for brevity)
     
     edited_df = st.data_editor(
-        df_components,
+        st.session_state["components_df"],
         num_rows="dynamic",
         use_container_width=True,
-        key="components_editor", # Fixed key to prevent state loss
+        key="components_editor_v2", # New key for stability
         column_config={
             "name": "Nombre Componente",
             "inventory": "Nº Inventario",
-            "brand": "Marca",
-            "model": "Modelo",
+            "brand": st.column_config.SelectboxColumn("Marca", options=list(set(past_brands))),
+            "model": st.column_config.SelectboxColumn("Modelo", options=list(set(past_models))),
             "serial": "Nº Serie"
         }
     )
-    # Update master state only if edited_df is available
+    # Update master state
     if edited_df is not None:
-        st.session_state["components"] = edited_df.to_dict("records")
+        st.session_state["components_df"] = edited_df
 
     st.markdown("---")
     
@@ -275,7 +276,7 @@ def main():
             "received_correctly": received_correctly,
             "users_trained": users_trained,
             "observations": observations,
-            "components": st.session_state["components"] 
+            "components": st.session_state["components_df"].to_dict("records") 
         }
         
         # --- UPDATE MEMORY (Learning) ---
@@ -311,6 +312,20 @@ def main():
                     json.dump(memory, f, indent=4, ensure_ascii=False)
             except Exception as e:
                 st.warning(f"No se pudo guardar la memoria: {e}")
+            
+        # Also auto-learn components' brands/models if missing
+        for comp in data["components"]:
+            c_mod = comp.get("model")
+            if c_mod and c_mod not in memory["defaults"]["models"]:
+                 memory["defaults"]["models"][c_mod] = {
+                     "brand": comp.get("brand", ""),
+                     "description": comp.get("name", ""),
+                     "provider": "",
+                     "contact": ""
+                 }
+        # Save again if components added
+        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(memory, f, indent=4, ensure_ascii=False)
             
         # Save JSON (for record)
         with open("last_data.json", "w", encoding="utf-8") as f:
