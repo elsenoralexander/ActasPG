@@ -181,6 +181,7 @@ GLOBAL_DEFAULTS = {
 
 def show_baja_form(memory):
     st.title("🗑️ Nueva Acta de Baja")
+    init_session_state()
     
     # Common fields that share memory
     col1, col2 = st.columns(2)
@@ -287,9 +288,7 @@ def show_baja_form(memory):
             use_container_width=True
         )
 
-def show_reception_form(memory):
-    st.title("📋 Nueva Acta de Recepción")
-    
+def init_session_state():
     fields = ["center_name", "center_code", "manager", "unit", "floor", 
               "hole", "description", "brand", "model", "serial", "provider",
               "property", "contact", "main_inventory_number", "parent_inventory_number",
@@ -306,10 +305,15 @@ def show_reception_form(memory):
     if "components_df" not in st.session_state:
         st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
 
+def show_reception_form(memory):
+    st.title("📋 Nueva Acta de Recepción")
+    init_session_state()
+    
     # Sidebar: Reset button
     with st.sidebar:
         if st.button("🧹 Limpiar Formulario", use_container_width=True):
-            for k in fields: st.session_state[k] = GLOBAL_DEFAULTS.get(k, "")
+            for k in ["center_name", "center_code", "manager", "unit", "floor", "hole", "description", "brand", "model", "serial", "provider", "property", "contact", "main_inventory_number", "parent_inventory_number", "order_number", "amount_tax_included", "work_order_number", "justification_report"]:
+                st.session_state[k] = GLOBAL_DEFAULTS.get(k, "")
             st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
             st.session_state["reception_date_val"] = datetime.now().date()
             st.session_state["acceptance_date_val"] = datetime.now().date()

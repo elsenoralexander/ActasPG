@@ -62,22 +62,23 @@ COORDINATE_MAPS = {
     "baja": {
         "template": "acta baja equipos.pdf",
         "text": {
-            "center_name": (120, 696),
-            "service": (120, 683),
-            "manager": (120, 670),
-            "center_code": (425, 696),
-            "unit": (370, 683),
-            "floor": (370, 670),
-            "hole": (470, 670),
-            "description": (120, 622),
-            "brand": (120, 609),
-            "serial_number": (120, 596),
-            "main_inventory_number": (120, 583),
-            "model": (355, 609),
-            "property": (355, 596),
-            "parent_inventory_number": (355, 583),
-            "baja_date": (120, 534),
-            "work_order_number": (445, 234),
+            # Key: (x, y, max_width)
+            "center_name": (120, 696, 250),
+            "service": (120, 683, 200),
+            "manager": (120, 670, 200),
+            "center_code": (425, 696, 70),
+            "unit": (370, 683, 100),
+            "floor": (370, 670, 50),
+            "hole": (470, 670, 50),
+            "description": (120, 622, 400),
+            "brand": (120, 609, 200),
+            "serial_number": (120, 596, 200),
+            "main_inventory_number": (120, 583, 120),
+            "model": (355, 609, 150),
+            "property": (355, 596, 150),
+            "parent_inventory_number": (355, 583, 150),
+            "baja_date": (120, 534, 100),
+            "work_order_number": (445, 234, 80),
         },
         "bools": {
             "repair_budget": {True: (270, 234), False: (300, 234)},
@@ -113,10 +114,14 @@ def create_overlay(data, report_type="recepcion"):
 
     # --- FILL TEXT FIELDS ---
     text_mapping = config["text"]
-    for key, value in data.items():
+    for key, val in data.items():
         if key in text_mapping:
-            x, y = text_mapping[key]
-            can.drawString(x, y, str(value))
+            coords = text_mapping[key]
+            # Handle both (x, y) and (x, y, max_w)
+            if len(coords) == 3:
+                draw_scaled_string(can, val, coords[0], coords[1], coords[2])
+            else:
+                can.drawString(coords[0], coords[1], str(val))
 
     # --- FILL OBSERVATIONS ---
     obs_config = config["obs"]
