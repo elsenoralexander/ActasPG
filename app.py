@@ -40,14 +40,19 @@ def on_service_change():
 
 def on_model_change():
     memory = load_memory()
-    # Check all possible keys for model selection (though it might be same key, better safe)
-    model = st.session_state.get("model") or st.session_state.get("model_baja")
-    if model and model in memory.get("defaults", {}).get("models", {}):
-        m_data = memory["defaults"]["models"][model]
+    # Check both reception and baja keys
+    model_sel = st.session_state.get("model_select_recepcion") or st.session_state.get("model_select_baja")
+    
+    if model_sel and model_sel != "➕ AÑADIR NUEVO...":
+        m_data = memory.get("defaults", {}).get("models", {}).get(model_sel, {})
+        st.session_state["model"] = model_sel
         if m_data.get("description"): st.session_state["description"] = m_data["description"]
         if m_data.get("brand"): st.session_state["brand"] = m_data["brand"]
         if m_data.get("provider"): st.session_state["provider"] = m_data["provider"]
         if m_data.get("contact"): st.session_state["contact"] = m_data["contact"]
+    elif model_sel == "➕ AÑADIR NUEVO...":
+        st.session_state["model"] = ""
+        # We don't clear other fields automatically to let users edit them for the new model
 
 def on_reception_change():
     st.session_state["acceptance_date_val"] = st.session_state["reception_date_val"]
@@ -200,7 +205,22 @@ def show_baja_form(memory):
         st.subheader("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
-        st.text_input("Modelo", key="model", on_change=on_model_change)
+        
+        # BUSCADOR DE MODELO (ComboBox)
+        model_list = sorted(list(memory.get("defaults", {}).get("models", {}).keys()))
+        model_options = [""] + model_list + ["➕ AÑADIR NUEVO..."]
+        
+        sel_idx = 0
+        curr_m = st.session_state.get("model", "")
+        if curr_m in model_list: sel_idx = model_list.index(curr_m) + 1
+        
+        selected_m = st.selectbox("Modelo (Buscador)", model_options, index=sel_idx, key="model_select_baja", on_change=on_model_change)
+        
+        if selected_m == "➕ AÑADIR NUEVO...":
+            st.text_input("Nombre del Nuevo Modelo", key="model")
+        else:
+            st.text_input("Modelo", key="model", disabled=True)
+            
         st.text_input("Nº Serie", key="serial")
         st.text_input("Propiedad", key="property")
         st.text_input("Nº Inventario", key="main_inventory_number")
@@ -346,7 +366,22 @@ def show_reception_form(memory):
         st.subheader("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
-        st.text_input("Modelo", key="model", on_change=on_model_change)
+        
+        # BUSCADOR DE MODELO (ComboBox)
+        model_list = sorted(list(memory.get("defaults", {}).get("models", {}).keys()))
+        model_options = [""] + model_list + ["➕ AÑADIR NUEVO..."]
+        
+        sel_idx = 0
+        curr_m = st.session_state.get("model", "")
+        if curr_m in model_list: sel_idx = model_list.index(curr_m) + 1
+        
+        selected_m = st.selectbox("Modelo (Buscador)", model_options, index=sel_idx, key="model_select_recepcion", on_change=on_model_change)
+        
+        if selected_m == "➕ AÑADIR NUEVO...":
+            st.text_input("Nombre del Nuevo Modelo", key="model")
+        else:
+            st.text_input("Modelo", key="model", disabled=True)
+            
         st.text_input("Nº Serie", key="serial")
         st.text_input("Proveedor", key="provider")
         st.text_input("Propiedad", key="property")
