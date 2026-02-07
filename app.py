@@ -28,15 +28,20 @@ def save_memory(memory):
 def on_service_change():
     memory = load_memory()
     # Check all possible keys for service selection
-    service = st.session_state.get("service") or st.session_state.get("service_baja")
-    if service and service in memory.get("defaults", {}).get("services", {}):
-        s_data = memory["defaults"]["services"][service]
+    service_sel = st.session_state.get("service_select_recepcion") or st.session_state.get("service_select_baja")
+    
+    if service_sel and service_sel != "➕ AÑADIR NUEVO...":
+        s_data = memory.get("defaults", {}).get("services", {}).get(service_sel, {})
+        st.session_state["service"] = service_sel
         st.session_state["manager"] = s_data.get("manager", "")
         st.session_state["floor"] = s_data.get("floor", "")
         st.session_state["unit"] = s_data.get("unit", "")
         st.session_state["hole"] = s_data.get("hole", "")
         st.session_state["center_name"] = s_data.get("center_name", "POLICLINICA GIPUZKOA")
         st.session_state["center_code"] = s_data.get("center_code", "001")
+    elif service_sel == "➕ AÑADIR NUEVO...":
+        st.session_state["service"] = ""
+        # We don't clear other fields to let users edit them for the new service
 
 def on_model_change():
     memory = load_memory()
@@ -192,8 +197,21 @@ def show_baja_form(memory):
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📍 Ubicación")
-        service_options = [""] + list(memory.get("defaults", {}).get("services", {}).keys())
-        service = st.selectbox("Servicio", service_options, key="service_baja", on_change=on_service_change)
+        # BUSCADOR DE SERVICIO (ComboBox)
+        service_list = sorted(list(memory.get("defaults", {}).get("services", {}).keys()))
+        service_options = [""] + service_list + ["➕ AÑADIR NUEVO..."]
+        
+        s_sel_idx = 0
+        curr_s = st.session_state.get("service", "")
+        if curr_s in service_list: s_sel_idx = service_list.index(curr_s) + 1
+        
+        selected_s = st.selectbox("Servicio (Buscador)", service_options, index=s_sel_idx, key="service_select_baja", on_change=on_service_change)
+        
+        if selected_s == "➕ AÑADIR NUEVO...":
+            st.text_input("Nombre del Nuevo Servicio", key="service")
+        else:
+            st.text_input("Servicio", key="service", disabled=True)
+            
         st.text_input("Centro", key="center_name")
         st.text_input("Código Centro", key="center_code")
         st.text_input("Responsable", key="manager")
@@ -252,10 +270,11 @@ def show_baja_form(memory):
     
     if st.button("🚀 GENERAR ACTA DE BAJA (PDF)", type="primary", use_container_width=True):
         baja_date = st.session_state["baja_date_val"].strftime("%d/%m/%Y") if st.session_state["baja_date_val"] else ""
+        service = st.session_state.get("service", "")
         
         data = {
             "center_name": st.session_state["center_name"], "center_code": st.session_state["center_code"],
-            "service": service if service else "", "manager": st.session_state["manager"],
+            "service": service, "manager": st.session_state["manager"],
             "unit": st.session_state["unit"], "floor": st.session_state["floor"], "hole": st.session_state["hole"],
             "description": st.session_state["description"], "brand": st.session_state["brand"],
             "model": st.session_state["model"], "serial_number": st.session_state["serial"],
@@ -309,7 +328,7 @@ def show_baja_form(memory):
         )
 
 def init_session_state():
-    fields = ["center_name", "center_code", "manager", "unit", "floor", 
+    fields = ["service", "center_name", "center_code", "manager", "unit", "floor", 
               "hole", "description", "brand", "model", "serial", "provider",
               "property", "contact", "main_inventory_number", "parent_inventory_number",
               "order_number", "amount_tax_included", "work_order_number", "justification_report"]
@@ -346,14 +365,20 @@ def show_reception_form(memory):
     
     with col1:
         st.subheader("📍 Ubicación")
-        service_options = [""] + list(memory.get("defaults", {}).get("services", {}).keys())
-        s_col1, s_col2 = st.columns([3, 1])
-        is_new_service = s_col2.checkbox("Nuevo ➕")
+        # BUSCADOR DE SERVICIO (ComboBox)
+        service_list = sorted(list(memory.get("defaults", {}).get("services", {}).keys()))
+        service_options = [""] + service_list + ["➕ AÑADIR NUEVO..."]
         
-        if is_new_service:
-            service = st.text_input("Nuevo Servicio", key="service", help="Escribe el nombre del nuevo servicio")
+        s_sel_idx = 0
+        curr_s = st.session_state.get("service", "")
+        if curr_s in service_list: s_sel_idx = service_list.index(curr_s) + 1
+        
+        selected_s = st.selectbox("Servicio (Buscador)", service_options, index=s_sel_idx, key="service_select_recepcion", on_change=on_service_change)
+        
+        if selected_s == "➕ AÑADIR NUEVO...":
+            st.text_input("Nombre del Nuevo Servicio", key="service")
         else:
-            service = st.selectbox("Servicio", service_options, key="service", on_change=on_service_change)
+            st.text_input("Servicio", key="service", disabled=True)
 
         st.text_input("Centro", key="center_name")
         st.text_input("Código Centro", key="center_code")
@@ -470,9 +495,10 @@ def show_reception_form(memory):
     observations = st.text_area("Observaciones", height=100)
     
     if st.button("🚀 GENERAR ACTA PDF", type="primary", use_container_width=True):
+        service_val = st.session_state.get("service", "")
         data = {
             "center_name": st.session_state["center_name"], "center_code": st.session_state["center_code"],
-            "service": service if service else "", "manager": st.session_state["manager"],
+            "service": service_val, "manager": st.session_state["manager"],
             "unit": st.session_state["unit"], "floor": st.session_state["floor"], "hole": st.session_state["hole"],
             "description": st.session_state["description"], "brand": st.session_state["brand"],
             "model": st.session_state["model"], "serial_number": st.session_state["serial"],
