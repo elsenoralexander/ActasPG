@@ -368,6 +368,10 @@ def show_database(memory):
     
     if db_mode != "cloud":
         st.warning("⚠️ **Modo Local Activo**: Los cambios se guardarán solo en este dispositivo. Configura Firebase para sincronización en la nube.")
+    
+    if "db_success_msg" in st.session_state:
+        st.success(st.session_state["db_success_msg"])
+        del st.session_state["db_success_msg"]
 
     tab_serv, tab_mod = st.tabs(["🏢 Servicios y Plantas", "📦 Modelos y Equipos"])
 
@@ -393,8 +397,8 @@ def show_database(memory):
                             "hole": n_hole, "center_name": n_c_name, "center_code": n_c_code
                         }
                         save_memory(memory)
+                        st.session_state["db_success_msg"] = f"✅ ¡Servicio '{n_name}' registrado con éxito!"
                         st.balloons()
-                        st.success(f"¡Servicio '{n_name}' creado!")
                         st.rerun()
                     else:
                         st.error("El nombre del servicio es obligatorio.")
@@ -459,8 +463,8 @@ def show_database(memory):
                             "provider": n_m_prov, "contact": n_m_cont
                         }
                         save_memory(memory)
+                        st.session_state["db_success_msg"] = f"📦 ¡Modelo '{n_m_name}' registrado con éxito!"
                         st.balloons()
-                        st.success(f"¡Modelo '{n_m_name}' creado!")
                         st.rerun()
                     else:
                         st.error("El nombre del modelo es obligatorio.")
@@ -926,7 +930,7 @@ def main():
                 st.session_state["current_view"] = label
                 st.rerun()
         
-        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v3.0 • Luxury Clinical UI</div>", unsafe_allow_html=True)
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v3.1 • Luxury Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
     
