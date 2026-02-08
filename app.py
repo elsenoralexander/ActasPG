@@ -300,7 +300,7 @@ def on_service_change():
         st.session_state["unit"] = s_data.get("unit", "")
         st.session_state["hole"] = s_data.get("hole", "")
         st.session_state["center_name"] = s_data.get("center_name", "POLICLINICA GIPUZKOA")
-        st.session_state["center_code"] = s_data.get("center_code", "001")
+        st.session_state["center_code"] = s_data.get("center_code", "T05-POLGIP-HOS")
     elif service_sel == "➕ AÑADIR NUEVO...":
         st.session_state["service"] = ""
         # We don't clear other fields to let users edit them for the new service
@@ -382,7 +382,7 @@ def show_database(memory):
                 n_floor = col1.text_input("Planta")
                 n_hole = col2.text_input("Hueco")
                 n_c_name = col1.text_input("Centro", value="POLICLINICA GIPUZKOA")
-                n_c_code = col2.text_input("Cód. Centro", value="001")
+                n_c_code = col2.text_input("Cód. Centro", value="T05-POLGIP-HOS")
                 
                 if st.form_submit_button("✨ Crear Servicio", use_container_width=True):
                     if n_name:
@@ -415,7 +415,7 @@ def show_database(memory):
                     new_floor = col1.text_input("Planta", value=s_data.get("floor", ""))
                     new_hole = col2.text_input("Hueco", value=s_data.get("hole", ""))
                     new_c_name = col1.text_input("Centro", value=s_data.get("center_name", "POLICLINICA GIPUZKOA"))
-                    new_c_code = col2.text_input("Cód. Centro", value=s_data.get("center_code", "001"))
+                    new_c_code = col2.text_input("Cód. Centro", value=s_data.get("center_code", "T05-POLGIP-HOS"))
 
                     c1, c2 = st.columns(2)
                     if c1.form_submit_button("💾 Guardar Cambios", use_container_width=True):
@@ -494,7 +494,7 @@ def show_database(memory):
 # --- GLOBAL DEFAULTS ---
 GLOBAL_DEFAULTS = {
     "center_name": "POLICLINICA GIPUZKOA",
-    "center_code": "001",
+    "center_code": "T05-POLGIP-HOS",
     "description": "",
     "main_inventory_number": "INV-"
 }
@@ -914,7 +914,7 @@ def main():
                 st.session_state["current_view"] = label
                 st.rerun()
         
-        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.8 • Luxury Clinical UI</div>", unsafe_allow_html=True)
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.9 • Luxury Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
     
