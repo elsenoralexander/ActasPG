@@ -397,7 +397,42 @@ def show_database(memory):
                     else:
                         st.error("El nombre del servicio es obligatorio.")
 
+        card_begin("🏢 Editar Servicios Existentes")
+        services = memory.get("defaults", {}).get("services", {})
+        if not services:
+            st.write("No hay servicios guardados todavía.")
+        else:
+            s_list = sorted(list(services.keys()))
+            selected_s_edit = st.selectbox("Selecciona para editar", [""] + s_list, key="edit_service_select")
 
+            if selected_s_edit:
+                s_data = services[selected_s_edit]
+                with st.form("edit_service_form"):
+                    st.subheader(f"Servicio: {selected_s_edit}")
+                    col1, col2 = st.columns(2)
+                    new_manager = col1.text_input("Responsable", value=s_data.get("manager", ""))
+                    new_unit = col2.text_input("Unidad", value=s_data.get("unit", ""))
+                    new_floor = col1.text_input("Planta", value=s_data.get("floor", ""))
+                    new_hole = col2.text_input("Hueco", value=s_data.get("hole", ""))
+                    new_c_name = col1.text_input("Centro", value=s_data.get("center_name", "POLICLINICA GIPUZKOA"))
+                    new_c_code = col2.text_input("Cód. Centro", value=s_data.get("center_code", "001"))
+
+                    c1, c2 = st.columns(2)
+                    if c1.form_submit_button("💾 Guardar Cambios", use_container_width=True):
+                        services[selected_s_edit] = {
+                            "manager": new_manager, "unit": new_unit, "floor": new_floor,
+                            "hole": new_hole, "center_name": new_c_name, "center_code": new_c_code
+                        }
+                        save_memory(memory)
+                        st.success("¡Servicio actualizado!")
+                        st.rerun()
+
+                    if c2.form_submit_button("🗑️ Borrar Servicio", use_container_width=True):
+                        del services[selected_s_edit]
+                        save_memory(memory)
+                        st.warning("Servicio eliminado.")
+                        st.rerun()
+        card_end()
     with tab_mod:
         # --- ADD NEW MODEL ---
         with st.expander("➕ AÑADIR NUEVA REFERENCIA / MODELO", expanded=False):
@@ -879,7 +914,7 @@ def main():
                 st.session_state["current_view"] = label
                 st.rerun()
         
-        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.7 • Luxury Clinical UI</div>", unsafe_allow_html=True)
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.8 • Luxury Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
     
