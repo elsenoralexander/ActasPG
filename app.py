@@ -397,41 +397,6 @@ def show_database(memory):
                     else:
                         st.error("El nombre del servicio es obligatorio.")
 
-        card_begin("🏢 Editar Servicios Existentes")
-        services = memory.get("defaults", {}).get("services", {})
-        if not services:
-            st.write("No hay servicios guardados todavía.")
-        else:
-            s_list = sorted(list(services.keys()))
-            selected_s = st.selectbox("Selecciona para editar", [""] + s_list)
-
-            if selected_s:
-                s_data = services[selected_s]
-                with st.form("edit_service_form"):
-                    st.subheader(f"Editando: {selected_s}")
-                    new_manager = st.text_input("Responsable", value=s_data.get("manager", ""))
-                    new_unit = st.text_input("Unidad", value=s_data.get("unit", ""))
-                    new_floor = st.text_input("Planta", value=s_data.get("floor", ""))
-                    new_hole = st.text_input("Hueco", value=s_data.get("hole", ""))
-                    new_c_name = st.text_input("Centro", value=s_data.get("center_name", "POLICLINICA GIPUZKOA"))
-                    new_c_code = st.text_input("Cód. Centro", value=s_data.get("center_code", "001"))
-
-                    c1, c2 = st.columns(2)
-                    if c1.form_submit_button("💾 Guardar Cambios", use_container_width=True):
-                        services[selected_s] = {
-                            "manager": new_manager, "unit": new_unit, "floor": new_floor,
-                            "hole": new_hole, "center_name": new_c_name, "center_code": new_c_code
-                        }
-                        save_memory(memory)
-                        st.success("¡Servicio actualizado!")
-                        st.rerun()
-                    
-                    if c2.form_submit_button("🗑️ Borrar Servicio", use_container_width=True):
-                        del services[selected_s]
-                        save_memory(memory)
-                        st.warning("Servicio eliminado.")
-                        st.rerun()
-        card_end()
 
     with tab_mod:
         # --- ADD NEW MODEL ---
@@ -514,7 +479,6 @@ def show_baja_form(memory):
     # Common fields that share memory
     col1, col2 = st.columns(2)
     with col1:
-        card_begin("📍 Ubicación")
         # BUSCADOR DE SERVICIO (ComboBox)
         service_list = sorted(list(memory.get("defaults", {}).get("services", {}).keys()))
         service_options = [""] + service_list + ["➕ AÑADIR NUEVO..."]
@@ -536,10 +500,8 @@ def show_baja_form(memory):
         st.text_input("Unidad", key="unit")
         st.text_input("Planta", key="floor")
         st.text_input("Hueco", key="hole")
-        card_end()
     
     with col2:
-        card_begin("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
         
@@ -562,7 +524,6 @@ def show_baja_form(memory):
         st.text_input("Propiedad", key="property")
         st.text_input("Nº Inventario", key="main_inventory_number")
         st.text_input("Nº Inventario Padre", key="parent_inventory_number")
-        card_end()
 
     st.markdown("---")
     
@@ -590,7 +551,14 @@ def show_baja_form(memory):
     if st.button("🚀 GENERAR ACTA DE BAJA (PDF)", type="primary", use_container_width=True):
         baja_date = st.session_state["baja_date_val"].strftime("%d/%m/%Y") if st.session_state["baja_date_val"] else ""
         service = st.session_state.get("service", "")
-        
+        justification = st.session_state.get("justification_report", "")
+        rep_budget = st.session_state.get("repair_budget", True)
+        rep_repos = st.session_state.get("replacement_budget", True)
+        sat_off = st.session_state.get("sat_report", True)
+        other_docs = st.session_state.get("other_docs", True)
+        data_clean = st.session_state.get("data_cleaned", True)
+        observations = st.session_state.get("obs_baja", "")
+
         data = {
             "center_name": st.session_state["center_name"], "center_code": st.session_state["center_code"],
             "service": service, "manager": st.session_state["manager"],
@@ -681,7 +649,6 @@ def show_reception_form(memory):
     col1, col2 = st.columns(2)
     
     with col1:
-        card_begin("📍 Ubicación")
         # BUSCADOR DE SERVICIO (ComboBox)
         service_list = sorted(list(memory.get("defaults", {}).get("services", {}).keys()))
         service_options = [""] + service_list + ["➕ AÑADIR NUEVO..."]
@@ -703,10 +670,8 @@ def show_reception_form(memory):
         st.text_input("Unidad", key="unit")
         st.text_input("Planta", key="floor")
         st.text_input("Hueco", key="hole")
-        card_end()
 
     with col2:
-        card_begin("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
         
@@ -729,7 +694,6 @@ def show_reception_form(memory):
         st.text_input("Proveedor", key="provider")
         st.text_input("Propiedad", key="property")
         st.text_input("Contacto", key="contact")
-        card_end()
         
         card_begin("📅 Fechas y Garantía")
         c_d1, c_d2 = st.columns(2)
@@ -834,6 +798,7 @@ def show_reception_form(memory):
         }
         
         # --- UPDATE MEMORY ---
+        service = st.session_state.get("service", "")
         if service:
             if "services" not in memory["defaults"]: memory["defaults"]["services"] = {}
             memory["defaults"]["services"][service] = {
@@ -914,7 +879,7 @@ def main():
                 st.session_state["current_view"] = label
                 st.rerun()
         
-        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.6 • Luxury Clinical UI</div>", unsafe_allow_html=True)
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.7 • Luxury Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
     
