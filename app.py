@@ -4,25 +4,244 @@ import os
 from datetime import datetime
 import fill_acta  # Our local script
 import pandas as pd
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 # --- CONFIG ---
-st.set_page_config(page_title="Agente de Actas", layout="wide")
+# --- CONFIG ---
+st.set_page_config(page_title="Agente de Actas", layout="wide", initial_sidebar_state="expanded")
 
+# --- STYLE INJECTION ---
+# --- STYLE INJECTION ---
+def inject_custom_css():
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+    :root {
+        --q-primary: #00B1A8;
+        --q-secondary: #023E54;
+        --q-bg: #F8FAFC;
+        --q-card: #FFFFFF;
+        --q-text: #1E293B;
+        --q-text-muted: #64748B;
+        --q-border: #E2E8F0;
+        --q-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        --q-shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    }
+
+    /* Reset & Base */
+    .stApp {
+        background-color: var(--q-bg);
+        color: var(--q-text);
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+    }
+
+    /* App Header / Navigation */
+    [data-testid="stHeader"] {
+        background-color: rgba(248, 250, 252, 0.8) !important;
+        backdrop-filter: blur(10px);
+    }
+
+    /* Typography */
+    h1, h2, h3, .stHeading {
+        font-family: 'Outfit', sans-serif !important;
+        color: var(--q-secondary) !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.03em !important;
+    }
+    
+    h1 {
+        font-size: 2.5rem !important;
+        margin-bottom: 2rem !important;
+    }
+
+    /* Premium Cards */
+    .custom-card {
+        background: var(--q-card);
+        border: 1px solid var(--q-border);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--q-shadow);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .custom-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--q-shadow-premium);
+        border-color: var(--q-primary);
+    }
+
+    /* Sidebar Refinement */
+    section[data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        border-right: 1px solid var(--q-border);
+        box-shadow: 10px 0 30px rgba(0,0,0,0.02);
+    }
+    
+    section[data-testid="stSidebar"] .stMarkdown p {
+        font-weight: 500;
+        color: var(--q-text-muted);
+    }
+
+    /* Input & Selection Overrides */
+    div[data-baseweb="select"] > div, 
+    div[data-baseweb="input"] > div, 
+    textarea {
+        background-color: #FFFFFF !important;
+        border: 1px solid var(--q-border) !important;
+        border-radius: 12px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    div[data-baseweb="select"]:focus-within > div, 
+    div[data-baseweb="input"]:focus-within > div {
+        border-color: var(--q-primary) !important;
+        box-shadow: 0 0 0 4px rgba(0, 177, 168, 0.1) !important;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        background: var(--q-secondary) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        border: none !important;
+        padding: 0.6rem 2rem !important;
+        font-weight: 600 !important;
+        font-family: 'Outfit', sans-serif !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 4px 12px rgba(2, 62, 84, 0.15);
+    }
+
+    .stButton > button:hover {
+        background: var(--q-primary) !important;
+        transform: scale(1.02);
+        box-shadow: 0 8px 16px rgba(0, 177, 168, 0.2);
+    }
+
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        margin-bottom: 2rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 48px;
+        background-color: #FFFFFF !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--q-border) !important;
+        color: var(--q-text-muted) !important;
+        padding: 0 1.5rem !important;
+        font-weight: 600 !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: var(--q-primary) !important;
+        color: white !important;
+        border-color: var(--q-primary) !important;
+    }
+
+    /* Data Editor / Table Styling */
+    div[data-testid="stDataEditor"] {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--q-border);
+    }
+
+    /* Hidden Streamlit Branding & Overrides */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Animation */
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .stApp main {
+        animation: slideUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def card_begin(title=None):
+    html = f'<div class="custom-card">'
+    if title:
+        html += f'<h3 style="margin-top:0; margin-bottom:1.5rem; font-size:0.9rem; color:#64748B; text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">{title}</h3>'
+    st.markdown(html, unsafe_allow_html=True)
+
+def card_end():
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- FIREBASE SETUP ---
 MEMORY_FILE = "memory.json"
+
+def init_firestore():
+    if not firebase_admin._apps:
+        try:
+            # Try to load from Streamlit Secrets
+            if "firebase_service_account" in st.secrets:
+                secret_data = st.secrets["firebase_service_account"]
+                if isinstance(secret_data, str):
+                    try:
+                        key_dict = json.loads(secret_data)
+                    except json.JSONDecodeError:
+                        st.error("❌ El secreto 'firebase_service_account' no es un JSON válido.")
+                        return None, "error_json"
+                else:
+                    key_dict = dict(secret_data)
+                
+                cred = credentials.Certificate(key_dict)
+                firebase_admin.initialize_app(cred)
+                return firestore.client(), "cloud"
+            else:
+                # If no secrets, we still return None but we don't suppress the fact that sync is offline
+                return None, "local"
+        except Exception as e:
+            st.error(f"❌ Error conectando con Firebase: {e}")
+            return None, f"error_{e}"
+    return firestore.client(), "cloud"
+
+# Initialize Firebase silently
+db, db_mode = init_firestore()
+COLLECTION = "app_data"
+DOCUMENT = "memory"
 
 # --- HELPERS ---
 def load_memory():
+    if db:
+        try:
+            doc_ref = db.collection(COLLECTION).document(DOCUMENT)
+            doc = doc_ref.get()
+            if doc.exists:
+                return doc.to_dict()
+        except Exception as e:
+            st.error(f"Error cargando de Firestore: {e}")
+    
+    # Fallback to local file or default
     if os.path.exists(MEMORY_FILE):
         with open(MEMORY_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {"defaults": {"services": {}, "models": {}}}
 
 def save_memory(memory):
+    # Save to Firestore
+    if db:
+        try:
+            doc_ref = db.collection(COLLECTION).document(DOCUMENT)
+            doc_ref.set(memory)
+        except Exception as e:
+            st.error(f"Error guardando en Firestore: {e}")
+            
+    # Always save to local as backup if possible
     try:
         with open(MEMORY_FILE, "w", encoding="utf-8") as f:
             json.dump(memory, f, indent=4, ensure_ascii=False)
     except Exception as e:
-        st.error(f"Error guardando memoria: {e}")
+        st.error(f"Error guardando memoria local: {e}")
 
 # --- CALLBACKS ---
 def on_service_change():
@@ -103,17 +322,45 @@ def on_components_change():
 
 def show_database(memory):
     st.title("💾 Gestión de Base de Datos")
-    st.info("Desde aquí puedes editar o borrar la información que el Agente 'aprende' automáticamente.")
+    
+    if db_mode != "cloud":
+        st.warning("⚠️ **Modo Local Activo**: Los cambios se guardarán solo en este dispositivo. Configura Firebase para sincronización en la nube.")
 
     tab_serv, tab_mod = st.tabs(["🏢 Servicios y Plantas", "📦 Modelos y Equipos"])
 
     with tab_serv:
+        # --- ADD NEW SERVICE ---
+        with st.expander("➕ AÑADIR NUEVO SERVICIO", expanded=False):
+            with st.form("new_service_form"):
+                n_name = st.text_input("Nombre del Servicio (Ej: RADIOLOGÍA)")
+                col1, col2 = st.columns(2)
+                n_manager = col1.text_input("Responsable")
+                n_unit = col2.text_input("Unidad")
+                n_floor = col1.text_input("Planta")
+                n_hole = col2.text_input("Hueco")
+                n_c_name = col1.text_input("Centro", value="POLICLINICA GIPUZKOA")
+                n_c_code = col2.text_input("Cód. Centro", value="001")
+                
+                if st.form_submit_button("✨ Crear Servicio", use_container_width=True):
+                    if n_name:
+                        services = memory.get("defaults", {}).get("services", {})
+                        services[n_name] = {
+                            "manager": n_manager, "unit": n_unit, "floor": n_floor,
+                            "hole": n_hole, "center_name": n_c_name, "center_code": n_c_code
+                        }
+                        save_memory(memory)
+                        st.success(f"¡Servicio '{n_name}' creado!")
+                        st.rerun()
+                    else:
+                        st.error("El nombre del servicio es obligatorio.")
+
+        card_begin("🏢 Editar Servicios Existentes")
         services = memory.get("defaults", {}).get("services", {})
         if not services:
             st.write("No hay servicios guardados todavía.")
         else:
             s_list = sorted(list(services.keys()))
-            selected_s = st.selectbox("Selecciona un Servicio para editar", [""] + s_list)
+            selected_s = st.selectbox("Selecciona para editar", [""] + s_list)
 
             if selected_s:
                 s_data = services[selected_s]
@@ -129,12 +376,8 @@ def show_database(memory):
                     c1, c2 = st.columns(2)
                     if c1.form_submit_button("💾 Guardar Cambios", use_container_width=True):
                         services[selected_s] = {
-                            "manager": new_manager,
-                            "unit": new_unit,
-                            "floor": new_floor,
-                            "hole": new_hole,
-                            "center_name": new_c_name,
-                            "center_code": new_c_code
+                            "manager": new_manager, "unit": new_unit, "floor": new_floor,
+                            "hole": new_hole, "center_name": new_c_name, "center_code": new_c_code
                         }
                         save_memory(memory)
                         st.success("¡Servicio actualizado!")
@@ -145,14 +388,39 @@ def show_database(memory):
                         save_memory(memory)
                         st.warning("Servicio eliminado.")
                         st.rerun()
+        card_end()
 
     with tab_mod:
+        # --- ADD NEW MODEL ---
+        with st.expander("➕ AÑADIR NUEVA REFERENCIA / MODELO", expanded=False):
+            with st.form("new_model_form"):
+                n_m_name = st.text_input("Nombre del Modelo / Referencia")
+                n_m_desc = st.text_input("Descripción")
+                col1, col2 = st.columns(2)
+                n_m_brand = col1.text_input("Marca")
+                n_m_prov = col2.text_input("Proveedor")
+                n_m_cont = st.text_input("Contacto")
+                
+                if st.form_submit_button("✨ Crear Modelo", use_container_width=True):
+                    if n_m_name:
+                        models = memory.get("defaults", {}).get("models", {})
+                        models[n_m_name] = {
+                            "description": n_m_desc, "brand": n_m_brand,
+                            "provider": n_m_prov, "contact": n_m_cont
+                        }
+                        save_memory(memory)
+                        st.success(f"¡Modelo '{n_m_name}' creado!")
+                        st.rerun()
+                    else:
+                        st.error("El nombre del modelo es obligatorio.")
+
+        card_begin("📦 Editar Modelos Existentes")
         models = memory.get("defaults", {}).get("models", {})
         if not models:
             st.write("No hay modelos guardados todavía.")
         else:
             m_list = sorted(list(models.keys()))
-            selected_m = st.selectbox("Selecciona un Modelo para editar", [""] + m_list)
+            selected_m = st.selectbox("Selecciona para editar", [""] + m_list)
 
             if selected_m:
                 m_data = models[selected_m]
@@ -166,10 +434,8 @@ def show_database(memory):
                     c1, c2 = st.columns(2)
                     if c1.form_submit_button("💾 Guardar Cambios", use_container_width=True):
                         models[selected_m] = {
-                            "description": new_desc,
-                            "brand": new_brand,
-                            "provider": new_prov,
-                            "contact": new_cont
+                            "description": new_desc, "brand": new_brand,
+                            "provider": new_prov, "contact": new_cont
                         }
                         save_memory(memory)
                         st.success("¡Modelo actualizado!")
@@ -180,6 +446,7 @@ def show_database(memory):
                         save_memory(memory)
                         st.warning("Modelo eliminado.")
                         st.rerun()
+        card_end()
 
 # --- GLOBAL DEFAULTS ---
 GLOBAL_DEFAULTS = {
@@ -196,7 +463,7 @@ def show_baja_form(memory):
     # Common fields that share memory
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("📍 Ubicación")
+        card_begin("📍 Ubicación")
         # BUSCADOR DE SERVICIO (ComboBox)
         service_list = sorted(list(memory.get("defaults", {}).get("services", {}).keys()))
         service_options = [""] + service_list + ["➕ AÑADIR NUEVO..."]
@@ -218,9 +485,10 @@ def show_baja_form(memory):
         st.text_input("Unidad", key="unit")
         st.text_input("Planta", key="floor")
         st.text_input("Hueco", key="hole")
+        card_end()
     
     with col2:
-        st.subheader("📦 Equipo")
+        card_begin("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
         
@@ -243,30 +511,30 @@ def show_baja_form(memory):
         st.text_input("Propiedad", key="property")
         st.text_input("Nº Inventario", key="main_inventory_number")
         st.text_input("Nº Inventario Padre", key="parent_inventory_number")
+        card_end()
 
     st.markdown("---")
-    st.subheader("📑 Informe Justificativo")
-    c_just1, c_just2 = st.columns([1, 2])
-    with c_just1:
+    
+    col_inf, col_acc = st.columns(2)
+    with col_inf:
+        card_begin("📑 Informe Justificativo")
         st.date_input("Fecha Baja", key="baja_date_val")
-    with c_just2:
-        justification = st.text_area("Justificación de la Baja", key="justification_report", height=100)
+        st.text_area("Justificación de la Baja", key="justification_report", height=150)
+        card_end()
 
-    st.markdown("---")
-    st.subheader("✅ Aceptación de la Baja")
-    c_acc1, c_acc2 = st.columns(2)
-    with c_acc1:
-        rep_budget = st.checkbox("Se adjunta presupuesto reparación", key="repair_budget", value=True)
-        rep_repos = st.checkbox("Se adjunta presupuesto reposición", key="replacement_budget", value=True)
-        sat_off = st.checkbox("Se adjunta SAT oficial justificativo", key="sat_report", value=True)
-    with c_acc2:
+    with col_acc:
+        card_begin("✅ Aceptación de la Baja")
         st.text_input("Número Orden de Trabajo", key="work_order_number")
-        other_docs = st.checkbox("Se adjuntan otros documentos", key="other_docs", value=True)
-        data_clean = st.checkbox("Limpieza de datos de paciente realizada", key="data_cleaned", value=True)
-
-    st.markdown("---")
-    st.subheader("Extras")
-    observations = st.text_area("Observaciones", key="obs_baja", height=100)
+        c_chk1, c_chk2 = st.columns(2)
+        with c_chk1:
+            st.checkbox("Presupuesto reparación", key="repair_budget", value=True)
+            st.checkbox("Presupuesto reposición", key="replacement_budget", value=True)
+        with c_chk2:
+            st.checkbox("SAT oficial", key="sat_report", value=True)
+            st.checkbox("Otros documentos", key="other_docs", value=True)
+        st.checkbox("Limpieza de datos realizada", key="data_cleaned", value=True)
+        st.text_area("Observaciones", key="obs_baja", height=68)
+        card_end()
     
     if st.button("🚀 GENERAR ACTA DE BAJA (PDF)", type="primary", use_container_width=True):
         baja_date = st.session_state["baja_date_val"].strftime("%d/%m/%Y") if st.session_state["baja_date_val"] else ""
@@ -364,7 +632,7 @@ def show_reception_form(memory):
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📍 Ubicación")
+        card_begin("📍 Ubicación")
         # BUSCADOR DE SERVICIO (ComboBox)
         service_list = sorted(list(memory.get("defaults", {}).get("services", {}).keys()))
         service_options = [""] + service_list + ["➕ AÑADIR NUEVO..."]
@@ -386,9 +654,10 @@ def show_reception_form(memory):
         st.text_input("Unidad", key="unit")
         st.text_input("Planta", key="floor")
         st.text_input("Hueco", key="hole")
+        card_end()
 
     with col2:
-        st.subheader("📦 Equipo")
+        card_begin("📦 Equipo")
         st.text_input("Descripción", key="description")
         st.text_input("Marca", key="brand")
         
@@ -411,54 +680,55 @@ def show_reception_form(memory):
         st.text_input("Proveedor", key="provider")
         st.text_input("Propiedad", key="property")
         st.text_input("Contacto", key="contact")
+        card_end()
         
-        st.caption("Fechas y Garantía")
+        card_begin("📅 Fechas y Garantía")
         c_d1, c_d2 = st.columns(2)
         c_d1.date_input("Recepción", key="reception_date_val", on_change=on_reception_change)
         c_d2.date_input("Aceptación", key="acceptance_date_val", on_change=calculate_warranty_end)
         st.radio("Años de Garantía", options=[0, 1, 2, 3, 4], key="warranty_years", horizontal=True, on_change=calculate_warranty_end)
         st.date_input("Fin Garantía", key="warranty_end_val")
+        card_end()
         
         reception_date = st.session_state["reception_date_val"].strftime("%d/%m/%Y") if st.session_state["reception_date_val"] else ""
         acceptance_date = st.session_state["acceptance_date_val"].strftime("%d/%m/%Y") if st.session_state["acceptance_date_val"] else ""
         warranty_end = st.session_state["warranty_end_val"].strftime("%d/%m/%Y") if st.session_state["warranty_end_val"] else ""
 
     st.markdown("---")
-    st.subheader("📝 Registro y Aceptación")
-    reg_col1, reg_col2 = st.columns(2)
-    with reg_col1:
+    
+    col_reg, col_ver = st.columns(2)
+    with col_reg:
+        card_begin("📝 Registro y Aceptación")
         st.text_input("Nº Inventario", key="main_inventory_number")
         st.text_input("Nº Inventario Padre", key="parent_inventory_number")
-    with reg_col2:
         st.text_input("Número Pedido", key="order_number")
         st.text_input("Importe (IVA inc.)", key="amount_tax_included")
+        card_end()
+
+    with col_ver:
+        card_begin("✅ Verificaciones")
+        tab_v1, tab_v2, tab_v3 = st.tabs(["📋 General", "🔒 Seguridad", "🔧 Mantenimiento"])
+        with tab_v1:
+            compliance = st.checkbox("Cumple normativa", value=True)
+            manuals_usage = st.checkbox("Manual Uso", value=True)
+            manuals_tech = st.checkbox("Manual Técnico", value=True)
+            order_accordance = st.checkbox("Acorde a pedido", value=True)
+        with tab_v2:
+            patient_data = st.checkbox("Maneja datos pac.", value=True)
+            backup_required = st.checkbox("Requiere copia seg.", value=True)
+            requires_epis = st.checkbox("Requiere EPIS", value=True)
+            safe_to_use = st.checkbox("Seguro para uso", value=True)
+            received_correctly = st.checkbox("Recibido/Instalado correctamente", value=True)
+            users_trained = st.checkbox("Usuarios formados", value=True)
+        with tab_v3:
+            preventive = st.checkbox("Mant. Preventivo", value=True)
+            contract = st.checkbox("Contrato Mant.", value=True)
+            periodicity = st.selectbox("Periodicidad", ["Anual", "Semestral", "Trimestral", "Bienal"])
+            status = st.radio("Estado del Equipo", ["good", "bad", "obsolete"], format_func=lambda x: {"good":"Buen Estado", "bad":"Mal Estado", "obsolete":"Obsoleto"}[x])
+        card_end()
 
     st.markdown("---")
-    st.subheader("✅ Verificaciones")
-    c_v1, c_v2, c_v3 = st.columns(3)
-    with c_v1:
-        st.markdown("**Recepción**")
-        compliance = st.checkbox("Cumple normativa", value=True)
-        manuals_usage = st.checkbox("Manual Uso", value=True)
-        manuals_tech = st.checkbox("Manual Técnico", value=True)
-        order_accordance = st.checkbox("Acorde a pedido", value=True)
-    with c_v2:
-        st.markdown("**Seguridad / Datos**")
-        patient_data = st.checkbox("Maneja datos pac.", value=True)
-        backup_required = st.checkbox("Requiere copia seg.", value=True)
-        requires_epis = st.checkbox("Requiere EPIS", value=True)
-        safe_to_use = st.checkbox("Seguro para uso", value=True)
-        received_correctly = st.checkbox("Recibido/Instalado correctamente", value=True)
-        users_trained = st.checkbox("Usuarios formados", value=True)
-    with c_v3:
-        st.markdown("**Mantenimiento y Estado**")
-        preventive = st.checkbox("Mant. Preventivo", value=True)
-        contract = st.checkbox("Contrato Mant.", value=True)
-        periodicity = st.selectbox("Periodicidad", ["Anual", "Semestral", "Trimestral", "Bienal"])
-        status = st.radio("Estado del Equipo", ["good", "bad", "obsolete"], format_func=lambda x: {"good":"Buen Estado", "bad":"Mal Estado", "obsolete":"Obsoleto"}[x])
-
-    st.markdown("---")
-    st.subheader("🔧 Componentes del Equipo")
+    card_begin("🔧 Componentes del Equipo")
     # Botones para añadir filas explícitamente (ayuda a evitar borrados y permite poner marca por defecto)
     c_btn1, c_btn2 = st.columns([1, 2])
     with c_btn1:
@@ -488,11 +758,8 @@ def show_reception_form(memory):
             "serial": "Nº Serie"
         }
     )
-    # Ya no asignamos edited_df directamente aquí para evitar el "flasheo" de reset
-
-    st.markdown("---")
-    st.subheader("Extras")
     observations = st.text_area("Observaciones", height=100)
+    card_end()
     
     if st.button("🚀 GENERAR ACTA PDF", type="primary", use_container_width=True):
         service_val = st.session_state.get("service", "")
@@ -561,18 +828,32 @@ def show_reception_form(memory):
         )
 
 def main():
+    inject_custom_css()
     # --- NAVIGATION ---
     with st.sidebar:
-        st.title("🤖 Agente de Actas")
+        st.markdown(f"""
+            <div style='padding: 1rem 0 2rem 0;'>
+                <h2 style='margin:0; font-size: 1.6rem; color: #023E54; font-family: "Outfit", sans-serif; font-weight: 800;'>
+                    ACTAS PG
+                </h2>
+                <div style='display: flex; align-items: center; gap: 6px; margin-top: 4px;'>
+                    <span style='width: 8px; height: 8px; background: {"#10B981" if db_mode == "cloud" else "#F59E0B"}; border-radius: 50%;'></span>
+                    <span style='color: #64748B; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;'>
+                        {"Cloud Sync" if db_mode == "cloud" else "Modo Local"}
+                    </span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
         view = st.radio("Sección", ["📝 Nueva Acta", "💾 Base de Datos"], label_visibility="collapsed")
         
         report_type = "recepcion"
         if view == "📝 Nueva Acta":
-            st.markdown("---")
-            report_type = st.radio("Tipo de Acta", ["Recepción", "Baja"], horizontal=False)
-            report_type = "recepcion" if report_type == "Recepción" else "baja"
+            st.markdown("<p style='font-size:0.7rem; font-weight:700; color:#64748B; margin: 2rem 0 0.5rem 0; text-transform:uppercase; letter-spacing:0.1em;'>Tipo de Documento</p>", unsafe_allow_html=True)
+            report_sel = st.pills("Doc", ["📋 Recepción", "🗑️ Baja"], selection_mode="single", label_visibility="collapsed", key="pill_nav")
+            report_type = "recepcion" if report_sel == "📋 Recepción" else "baja"
             
-        st.markdown("---")
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.5 • Premium Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
     if view == "💾 Base de Datos":
