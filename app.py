@@ -384,7 +384,8 @@ def show_database(memory):
                 n_c_name = col1.text_input("Centro", value="POLICLINICA GIPUZKOA")
                 n_c_code = col2.text_input("Cód. Centro", value="T05-POLGIP-HOS")
                 
-                if st.form_submit_button("✨ Crear Servicio", use_container_width=True):
+                cb1, cb2 = st.columns(2)
+                if cb1.form_submit_button("✨ Crear Servicio", use_container_width=True):
                     if n_name:
                         services = memory.get("defaults", {}).get("services", {})
                         services[n_name] = {
@@ -392,10 +393,14 @@ def show_database(memory):
                             "hole": n_hole, "center_name": n_c_name, "center_code": n_c_code
                         }
                         save_memory(memory)
+                        st.balloons()
                         st.success(f"¡Servicio '{n_name}' creado!")
                         st.rerun()
                     else:
                         st.error("El nombre del servicio es obligatorio.")
+                
+                if cb2.form_submit_button("🧹 Limpiar Formulario", use_container_width=True):
+                    st.rerun()
 
         card_begin("🏢 Editar Servicios Existentes")
         services = memory.get("defaults", {}).get("services", {})
@@ -424,6 +429,7 @@ def show_database(memory):
                             "hole": new_hole, "center_name": new_c_name, "center_code": new_c_code
                         }
                         save_memory(memory)
+                        st.toast(f"Servicio '{selected_s_edit}' actualizado", icon="✅")
                         st.success("¡Servicio actualizado!")
                         st.rerun()
 
@@ -444,7 +450,8 @@ def show_database(memory):
                 n_m_prov = col2.text_input("Proveedor")
                 n_m_cont = st.text_input("Contacto")
                 
-                if st.form_submit_button("✨ Crear Modelo", use_container_width=True):
+                cb1, cb2 = st.columns(2)
+                if cb1.form_submit_button("✨ Crear Modelo", use_container_width=True):
                     if n_m_name:
                         models = memory.get("defaults", {}).get("models", {})
                         models[n_m_name] = {
@@ -452,10 +459,14 @@ def show_database(memory):
                             "provider": n_m_prov, "contact": n_m_cont
                         }
                         save_memory(memory)
+                        st.balloons()
                         st.success(f"¡Modelo '{n_m_name}' creado!")
                         st.rerun()
                     else:
                         st.error("El nombre del modelo es obligatorio.")
+                
+                if cb2.form_submit_button("🧹 Limpiar Formulario", use_container_width=True):
+                    st.rerun()
 
         card_begin("📦 Editar Modelos Existentes")
         models = memory.get("defaults", {}).get("models", {})
@@ -481,6 +492,7 @@ def show_database(memory):
                             "provider": new_prov, "contact": new_cont
                         }
                         save_memory(memory)
+                        st.toast(f"Modelo '{selected_m}' actualizado", icon="📦")
                         st.success("¡Modelo actualizado!")
                         st.rerun()
 
@@ -914,7 +926,7 @@ def main():
                 st.session_state["current_view"] = label
                 st.rerun()
         
-        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.9 • Luxury Clinical UI</div>", unsafe_allow_html=True)
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v3.0 • Luxury Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
     
