@@ -379,14 +379,14 @@ def show_database(memory):
         # --- ADD NEW SERVICE ---
         with st.expander("➕ AÑADIR NUEVO SERVICIO", expanded=False):
             with st.form("new_service_form"):
-                n_name = st.text_input("Nombre del Servicio (Ej: RADIOLOGÍA)")
+                n_name = st.text_input("Nombre del Servicio (Ej: RADIOLOGÍA)", key="db_n_name")
                 col1, col2 = st.columns(2)
-                n_manager = col1.text_input("Responsable")
-                n_unit = col2.text_input("Unidad")
-                n_floor = col1.text_input("Planta")
-                n_hole = col2.text_input("Hueco")
-                n_c_name = col1.text_input("Centro", value="POLICLINICA GIPUZKOA")
-                n_c_code = col2.text_input("Cód. Centro", value="T05-POLGIP-HOS")
+                n_manager = col1.text_input("Responsable", key="db_n_manager")
+                n_unit = col2.text_input("Unidad", key="db_n_unit")
+                n_floor = col1.text_input("Planta", key="db_n_floor")
+                n_hole = col2.text_input("Hueco", key="db_n_hole")
+                n_c_name = col1.text_input("Centro", value="POLICLINICA GIPUZKOA", key="db_n_c_name")
+                n_c_code = col2.text_input("Cód. Centro", value="T05-POLGIP-HOS", key="db_n_c_code")
                 
                 cb1, cb2 = st.columns(2)
                 if cb1.form_submit_button("✨ Crear Servicio", use_container_width=True):
@@ -404,7 +404,7 @@ def show_database(memory):
                         st.error("El nombre del servicio es obligatorio.")
                 
                 if cb2.form_submit_button("🧹 Limpiar Formulario", use_container_width=True):
-                    st.rerun()
+                    [st.session_state.pop(k, None) for k in ["db_n_name", "db_n_manager", "db_n_unit", "db_n_floor", "db_n_hole", "db_n_c_name", "db_n_c_code"]]; st.rerun()
 
         card_begin("🏢 Editar Servicios Existentes")
         services = memory.get("defaults", {}).get("services", {})
@@ -447,12 +447,12 @@ def show_database(memory):
         # --- ADD NEW MODEL ---
         with st.expander("➕ AÑADIR NUEVA REFERENCIA / MODELO", expanded=False):
             with st.form("new_model_form"):
-                n_m_name = st.text_input("Nombre del Modelo / Referencia")
-                n_m_desc = st.text_input("Descripción")
+                n_m_name = st.text_input("Nombre del Modelo / Referencia", key="db_n_m_name")
+                n_m_desc = st.text_input("Descripción", key="db_n_m_desc")
                 col1, col2 = st.columns(2)
-                n_m_brand = col1.text_input("Marca")
-                n_m_prov = col2.text_input("Proveedor")
-                n_m_cont = st.text_input("Contacto")
+                n_m_brand = col1.text_input("Marca", key="db_n_m_brand")
+                n_m_prov = col2.text_input("Proveedor", key="db_n_m_prov")
+                n_m_cont = st.text_input("Contacto", key="db_n_m_cont")
                 
                 cb1, cb2 = st.columns(2)
                 if cb1.form_submit_button("✨ Crear Modelo", use_container_width=True):
@@ -470,7 +470,7 @@ def show_database(memory):
                         st.error("El nombre del modelo es obligatorio.")
                 
                 if cb2.form_submit_button("🧹 Limpiar Formulario", use_container_width=True):
-                    st.rerun()
+                    [st.session_state.pop(k, None) for k in ["db_n_m_name", "db_n_m_desc", "db_n_m_brand", "db_n_m_prov", "db_n_m_cont"]]; st.rerun()
 
         card_begin("📦 Editar Modelos Existentes")
         models = memory.get("defaults", {}).get("models", {})
@@ -930,7 +930,7 @@ def main():
                 st.session_state["current_view"] = label
                 st.rerun()
         
-        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v3.1 • Luxury Clinical UI</div>", unsafe_allow_html=True)
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v3.2 • Luxury Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
     
