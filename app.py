@@ -101,9 +101,9 @@ def inject_custom_css():
         box-shadow: 0 0 0 4px rgba(0, 177, 168, 0.1) !important;
     }
 
-    /* Buttons */
+    /* Buttons - Gradient Style */
     .stButton > button {
-        background: var(--q-secondary) !important;
+        background: linear-gradient(135deg, var(--q-secondary) 0%, #0a4d66 100%) !important;
         color: white !important;
         border-radius: 12px !important;
         border: none !important;
@@ -112,14 +112,57 @@ def inject_custom_css():
         font-family: 'Outfit', sans-serif !important;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        transition: all 0.2s ease !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         box-shadow: 0 4px 12px rgba(2, 62, 84, 0.15);
+        width: auto;
     }
 
     .stButton > button:hover {
-        background: var(--q-primary) !important;
-        transform: scale(1.02);
-        box-shadow: 0 8px 16px rgba(0, 177, 168, 0.2);
+        background: linear-gradient(135deg, var(--q-primary) 0%, #00d1c6 100%) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 177, 168, 0.3);
+    }
+
+    /* Primary Action Buttons */
+    div[data-testid="stForm"] .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, var(--q-primary) 0%, #00d1c6 100%) !important;
+        width: 100% !important;
+    }
+
+    /* Sidebar Navigation Buttons */
+    .nav-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 2rem;
+    }
+    
+    .nav-button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        border-radius: 14px;
+        text-decoration: none;
+        color: var(--q-text-muted);
+        font-weight: 600;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        cursor: pointer;
+        background: none;
+        width: 100%;
+        text-align: left;
+    }
+    
+    .nav-button:hover {
+        background-color: #F1F5F9;
+        color: var(--q-secondary);
+    }
+    
+    .nav-button.active {
+        background: linear-gradient(135deg, var(--q-primary) 0%, #00d1c6 100%);
+        color: white !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 177, 168, 0.2);
     }
 
     /* Tabs Styling */
@@ -457,7 +500,15 @@ GLOBAL_DEFAULTS = {
 }
 
 def show_baja_form(memory):
-    st.title("🗑️ Nueva Acta de Baja")
+    col_t1, col_t2 = st.columns([3, 1])
+    col_t1.title("🗑️ Nueva Acta de Baja")
+    if col_t2.button("🧹 Limpiar Formulario", key="reset_baja"):
+        for k in ["center_name", "center_code", "manager", "unit", "floor", "hole", "description", "brand", "model", "serial", "provider", "property", "contact", "main_inventory_number", "parent_inventory_number", "order_number", "amount_tax_included", "work_order_number", "justification_report", "service"]:
+            st.session_state[k] = GLOBAL_DEFAULTS.get(k, "")
+        st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
+        st.session_state["baja_date_val"] = datetime.now().date()
+        st.rerun()
+
     init_session_state()
     
     # Common fields that share memory
@@ -477,7 +528,7 @@ def show_baja_form(memory):
         if selected_s == "➕ AÑADIR NUEVO...":
             st.text_input("Nombre del Nuevo Servicio", key="service")
         else:
-            st.text_input("Servicio", key="service", disabled=True)
+            st.text_input("Servicio", key="service")
             
         st.text_input("Centro", key="center_name")
         st.text_input("Código Centro", key="center_code")
@@ -505,7 +556,7 @@ def show_baja_form(memory):
         if selected_m == "➕ AÑADIR NUEVO...":
             st.text_input("Nombre del Nuevo Modelo", key="model")
         else:
-            st.text_input("Modelo", key="model", disabled=True)
+            st.text_input("Modelo", key="model")
             
         st.text_input("Nº Serie", key="serial")
         st.text_input("Propiedad", key="property")
@@ -613,20 +664,18 @@ def init_session_state():
         st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
 
 def show_reception_form(memory):
-    st.title("📋 Nueva Acta de Recepción")
+    col_t1, col_t2 = st.columns([3, 1])
+    col_t1.title("📋 Nueva Acta de Recepción")
+    if col_t2.button("🧹 Limpiar Formulario", key="reset_recepcion"):
+        for k in ["center_name", "center_code", "manager", "unit", "floor", "hole", "description", "brand", "model", "serial", "provider", "property", "contact", "main_inventory_number", "parent_inventory_number", "order_number", "amount_tax_included", "work_order_number", "justification_report", "service"]:
+            st.session_state[k] = GLOBAL_DEFAULTS.get(k, "")
+        st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
+        st.session_state["reception_date_val"] = datetime.now().date()
+        st.session_state["acceptance_date_val"] = datetime.now().date()
+        st.session_state["warranty_end_val"] = None
+        st.rerun()
+
     init_session_state()
-    
-    # Sidebar: Reset button
-    with st.sidebar:
-        if st.button("🧹 Limpiar Formulario", use_container_width=True):
-            for k in ["center_name", "center_code", "manager", "unit", "floor", "hole", "description", "brand", "model", "serial", "provider", "property", "contact", "main_inventory_number", "parent_inventory_number", "order_number", "amount_tax_included", "work_order_number", "justification_report"]:
-                st.session_state[k] = GLOBAL_DEFAULTS.get(k, "")
-            st.session_state["components_df"] = pd.DataFrame(columns=["name", "inventory", "brand", "model", "serial"])
-            st.session_state["reception_date_val"] = datetime.now().date()
-            st.session_state["acceptance_date_val"] = datetime.now().date()
-            st.session_state["baja_date_val"] = datetime.now().date()
-            st.session_state["warranty_end_val"] = None
-            st.rerun()
 
     # --- FORM UI ---
     col1, col2 = st.columns(2)
@@ -646,7 +695,7 @@ def show_reception_form(memory):
         if selected_s == "➕ AÑADIR NUEVO...":
             st.text_input("Nombre del Nuevo Servicio", key="service")
         else:
-            st.text_input("Servicio", key="service", disabled=True)
+            st.text_input("Servicio", key="service")
 
         st.text_input("Centro", key="center_name")
         st.text_input("Código Centro", key="center_code")
@@ -674,7 +723,7 @@ def show_reception_form(memory):
         if selected_m == "➕ AÑADIR NUEVO...":
             st.text_input("Nombre del Nuevo Modelo", key="model")
         else:
-            st.text_input("Modelo", key="model", disabled=True)
+            st.text_input("Modelo", key="model")
             
         st.text_input("Nº Serie", key="serial")
         st.text_input("Proveedor", key="provider")
@@ -829,40 +878,52 @@ def show_reception_form(memory):
 
 def main():
     inject_custom_css()
+    
+    if "current_view" not in st.session_state:
+        st.session_state["current_view"] = "📋 Recepción"
+
     # --- NAVIGATION ---
     with st.sidebar:
         st.markdown(f"""
-            <div style='padding: 1rem 0 2rem 0;'>
+            <div style='padding: 1rem 0 1.5rem 0;'>
                 <h2 style='margin:0; font-size: 1.6rem; color: #023E54; font-family: "Outfit", sans-serif; font-weight: 800;'>
                     ACTAS PG
                 </h2>
                 <div style='display: flex; align-items: center; gap: 6px; margin-top: 4px;'>
                     <span style='width: 8px; height: 8px; background: {"#10B981" if db_mode == "cloud" else "#F59E0B"}; border-radius: 50%;'></span>
                     <span style='color: #64748B; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;'>
-                        {"Cloud Sync" if db_mode == "cloud" else "Modo Local"}
+                        {"Cloud Sync Activo" if db_mode == "cloud" else "Modo Local"}
                     </span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
         
-        view = st.radio("Sección", ["📝 Nueva Acta", "💾 Base de Datos"], label_visibility="collapsed")
+        # Navigation with elegant buttons
+        nav_options = [
+            ("📋 Recepción", "recepcion"),
+            ("🗑️ Baja", "baja"),
+            ("💾 Base de Datos", "database")
+        ]
         
-        report_type = "recepcion"
-        if view == "📝 Nueva Acta":
-            st.markdown("<p style='font-size:0.7rem; font-weight:700; color:#64748B; margin: 2rem 0 0.5rem 0; text-transform:uppercase; letter-spacing:0.1em;'>Tipo de Documento</p>", unsafe_allow_html=True)
-            report_sel = st.pills("Doc", ["📋 Recepción", "🗑️ Baja"], selection_mode="single", label_visibility="collapsed", key="pill_nav")
-            report_type = "recepcion" if report_sel == "📋 Recepción" else "baja"
-            
-        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.5 • Premium Clinical UI</div>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:0.7rem; font-weight:700; color:#64748B; margin: 1rem 0 0.5rem 0; text-transform:uppercase; letter-spacing:0.1em;'>Sección</p>", unsafe_allow_html=True)
+        
+        for label, view_id in nav_options:
+            is_active = st.session_state["current_view"] == label
+            if st.button(label, key=f"nav_{view_id}", use_container_width=True, 
+                         type="primary" if is_active else "secondary"):
+                st.session_state["current_view"] = label
+                st.rerun()
+        
+        st.markdown("<div style='position: fixed; bottom: 20px; left: 20px; color: #94A3B8; font-size: 0.7rem; font-weight:500;'>v2.6 • Luxury Clinical UI</div>", unsafe_allow_html=True)
 
     memory = load_memory()
-    if view == "💾 Base de Datos":
-        show_database(memory)
+    
+    if st.session_state["current_view"] == "📋 Recepción":
+        show_reception_form(memory)
+    elif st.session_state["current_view"] == "🗑️ Baja":
+        show_baja_form(memory)
     else:
-        if report_type == "recepcion":
-            show_reception_form(memory)
-        else:
-            show_baja_form(memory)
+        show_database(memory)
 
 if __name__ == "__main__":
     main()
