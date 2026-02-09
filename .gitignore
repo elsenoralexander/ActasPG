@@ -1,9 +1,36 @@
-.venv/
-__pycache__/
-*.pyc
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+
+# Misc
 .DS_Store
-last_data.json
-Acta_Generada_Web.pdf
-Acta_Rellenada.pdf
-Acta_Rellenada_Web.pdf
-memory.json
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+.venv
+node_modules

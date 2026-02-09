@@ -1,0 +1,54 @@
+{
+    "defaults": {
+        "services": {
+            "Quirófano": {
+                "manager": "Aloña Cabanillas",
+                "unit": "Bloque Quirúrgico",
+                "floor": "1",
+                "hole": "Q-01",
+                "center_name": "POLICLINICA GIPUZKOA",
+                "center_code": "001"
+            },
+            "UCI": {
+                "manager": "Dr. Martínez",
+                "unit": "Cuidados Intensivos",
+                "floor": "2",
+                "hole": "U-01",
+                "center_name": "POLICLINICA GIPUZKOA",
+                "center_code": "001"
+            },
+            "TEST SERVICETEST SERVICE 2": {
+                "manager": "",
+                "unit": "",
+                "floor": "",
+                "hole": "",
+                "center_name": "POLICLINICA GIPUZKOA",
+                "center_code": "T05-POLGIP-HOS"
+            },
+            "SERVICIO TEST VERIFICACION": {
+                "manager": "",
+                "unit": "",
+                "floor": "",
+                "hole": "",
+                "center_name": "POLICLINICA GIPUZKOA",
+                "center_code": "T05-POLGIP-HOS"
+            },
+            "CLEAR TEST": {
+                "manager": "",
+                "unit": "",
+                "floor": "",
+                "hole": "",
+                "center_name": "POLICLINICA GIPUZKOA",
+                "center_code": "T05-POLGIP-HOS"
+            }
+        },
+        "models": {
+            "72205685": {
+                "description": "CONSOLA DE CAMARA INTELLIO 4K SMITH & NEPHEW",
+                "brand": "SMITH & NEPHEW",
+                "provider": "SMITH & NEPHEW",
+                "contact": ""
+            }
+        }
+    }
+}
